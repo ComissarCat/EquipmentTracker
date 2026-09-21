@@ -1,9 +1,5 @@
 import type { Repair } from '../types';
-
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}.${m}.${y}`;
-}
+import { formatIsoDate } from '../utils/dates';
 
 // История ремонтов единицы техники (новые сверху)
 export function RepairHistory({ repairs }: { repairs: Repair[] }) {
@@ -24,7 +20,7 @@ export function RepairHistory({ repairs }: { repairs: Repair[] }) {
           <tbody>
             {repairs.map((r) => (
               <tr key={r.id}>
-                <td>{formatDate(r.date)}</td>
+                <td>{formatIsoDate(r.date)}</td>
                 <td>{r.operations.length > 0 ? r.operations.map((o) => o.name).join(', ') : '—'}</td>
                 <td>{r.parts.length > 0 ? r.parts.map((p) => `${p.name} × ${p.quantity}`).join(', ') : '—'}</td>
                 <td style={{ whiteSpace: 'pre-wrap' }}>{r.note || '—'}</td>

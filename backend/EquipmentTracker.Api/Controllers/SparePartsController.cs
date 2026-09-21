@@ -112,8 +112,8 @@ public class SparePartsController : ControllerBase
         var item = await _db.SpareParts.FindAsync(id);
         if (item is null) return NotFound();
 
-        if (await _db.Set<RepairPartItem>().AnyAsync(i => i.SparePartId == id))
-            return BadRequest(new { message = "Нельзя удалить расходную часть, которая использована в зафиксированных ремонтах" });
+        if (await _db.SparePartWriteOffs.AnyAsync(w => w.SparePartId == id))
+            return BadRequest(new { message = "Нельзя удалить расходную часть, по которой есть списания (ремонты или выдачи)" });
 
         _db.SpareParts.Remove(item);
         await _db.SaveChangesAsync();

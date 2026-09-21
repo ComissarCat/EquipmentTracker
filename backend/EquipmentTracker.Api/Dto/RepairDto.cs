@@ -1,6 +1,7 @@
 namespace EquipmentTracker.Api.Dto;
 
-public record RepairPartDto(int SparePartId, string Name, int Quantity);
+// Строка списания расходной части (в ремонте или выдаче)
+public record WriteOffPartDto(int SparePartId, string Name, int Quantity);
 
 public record RepairDto(
     int Id,
@@ -9,13 +10,43 @@ public record RepairDto(
     string AccountLogin,
     DateTime CreatedUtc,
     List<RepairOperationDto> Operations,
-    List<RepairPartDto> Parts);
+    List<WriteOffPartDto> Parts);
 
-public record RepairPartRequest(int SparePartId, int Quantity);
+// Запрос на списание части: используется и при фиксации ремонта, и при выдаче
+public record SparePartQuantityRequest(int SparePartId, int Quantity);
 
 // Date не указана — берётся текущая (UTC) дата сервера; фронтенд по умолчанию передаёт локальную дату.
 public record CreateRepairRequest(
     DateOnly? Date,
     List<int>? OperationIds,
-    List<RepairPartRequest>? Parts,
+    List<SparePartQuantityRequest>? Parts,
     string? Note);
+
+public record CreateSparePartIssueRequest(
+    DateOnly? Date,
+    string? Recipient,
+    List<SparePartQuantityRequest>? Parts);
+
+public record SparePartIssueDto(
+    int Id,
+    DateOnly Date,
+    string Recipient,
+    string AccountLogin,
+    DateTime CreatedUtc,
+    List<WriteOffPartDto> Parts);
+
+// Строка истории списаний. Kind: "Repair" | "Issue".
+// Для ремонта заполнены RepairId/EquipmentUnitId/EquipmentUnitTitle, для выдачи — Recipient.
+public record SparePartWriteOffDto(
+    int Id,
+    DateOnly Date,
+    string Kind,
+    int SparePartId,
+    string SparePartName,
+    int Quantity,
+    string AccountLogin,
+    DateTime CreatedUtc,
+    string? Recipient,
+    int? RepairId,
+    int? EquipmentUnitId,
+    string? EquipmentUnitTitle);

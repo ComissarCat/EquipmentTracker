@@ -32,6 +32,8 @@ public class AppDbContext : DbContext
     public DbSet<RepairOperation> RepairOperations => Set<RepairOperation>();
     public DbSet<SparePart> SpareParts => Set<SparePart>();
     public DbSet<Repair> Repairs => Set<Repair>();
+    public DbSet<SparePartWriteOff> SparePartWriteOffs => Set<SparePartWriteOff>();
+    public DbSet<SparePartIssue> SparePartIssues => Set<SparePartIssue>();
     public DbSet<EditHistoryEntry> HistoryEntries => Set<EditHistoryEntry>();
 
     // Типы сущностей, для которых ведётся история редактирования
@@ -136,14 +138,25 @@ public class AppDbContext : DbContext
             .HasOne(i => i.RepairOperation).WithMany()
             .HasForeignKey(i => i.RepairOperationId).OnDelete(DeleteBehavior.Restrict);
 
-        modelBuilder.Entity<RepairPartItem>()
-            .HasKey(i => new { i.RepairId, i.SparePartId });
-        modelBuilder.Entity<RepairPartItem>()
-            .HasOne(i => i.Repair).WithMany(r => r.Parts)
-            .HasForeignKey(i => i.RepairId).OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<RepairPartItem>()
-            .HasOne(i => i.SparePart).WithMany()
-            .HasForeignKey(i => i.SparePartId).OnDelete(DeleteBehavior.Restrict);
+        // Единая таблица списаний расходных частей: основание — ремонт ИЛИ выдача.
+        // Удаление основания удаляет его строки списания (остаток при этом не восстанавливается);
+        // часть, по которой есть списания, удалить нельзя (Restrict + проверка в контроллере).
+        modelBuilder.Entity<SparePartWriteOff>()
+            .HasOne(w => w.SparePart).WithMany()
+            .HasForeignKey(w => w.SparePartId).OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<SparePartWriteOff>()
+            .HasOne(w => w.Repair).WithMany(r => r.WriteOffs)
+            .HasForeignKey(w => w.RepairId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SparePartWriteOff>()
+            .HasOne(w => w.Issue).WithMany(i => i.WriteOffs)
+            .HasForeignKey(w => w.IssueId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<SparePartWriteOff>()
+            .ToTable(t => t.HasCheckConstraint(
+                "CK_SparePartWriteOffs_Source",
+                "(\"RepairId\" IS NOT NULL AND \"IssueId\" IS NULL) OR (\"RepairId\" IS NULL AND \"IssueId\" IS NOT NULL)"));
+
+        modelBuilder.Entity<SparePartIssue>()
+            .HasIndex(i => i.Date);
     }
 
     public override int SaveChanges()

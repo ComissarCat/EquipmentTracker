@@ -6,6 +6,7 @@ import { MainPage } from './pages/MainPage';
 import { AdminAccountsPage } from './pages/AdminAccountsPage';
 import { CatalogsPage } from './pages/CatalogsPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { WriteOffsPage } from './pages/WriteOffsPage';
 import { EquipmentUnitDetailPage } from './pages/EquipmentUnitDetailPage';
 import { ExportPage } from './pages/ExportPage';
 
@@ -39,6 +40,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <Link to="/">Главная</Link>
           <Link to="/export">Экспорт</Link>
           {isOperator && <Link to="/catalogs">Справочники</Link>}
+          {isOperator && <Link to="/write-offs">Списания</Link>}
           {isOperator && <Link to="/history">История</Link>}
           {isAdministrator && <Link to="/admin/accounts">Учётные записи</Link>}
         </nav>
@@ -87,6 +89,14 @@ export default function App() {
           element={
             <RequireRole role="operator">
               <CatalogsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/write-offs"
+          element={
+            <RequireRole role="operator">
+              <WriteOffsPage />
             </RequireRole>
           }
         />

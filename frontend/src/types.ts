@@ -77,3 +77,18 @@ export interface Repair {
   operations: RepairOperation[];
   parts: RepairPart[];
 }
+
+export interface SparePartWriteOff {
+  id: number;
+  date: string; // yyyy-MM-dd
+  kind: 'Repair' | 'Issue';
+  sparePartId: number;
+  sparePartName: string;
+  quantity: number;
+  accountLogin: string;
+  createdUtc: string;
+  recipient: string | null;
+  repairId: number | null;
+  equipmentUnitId: number | null;
+  equipmentUnitTitle: string | null;
+}
