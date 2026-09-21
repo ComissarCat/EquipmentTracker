@@ -1,6 +1,7 @@
 using EquipmentTracker.Api.Data;
 using EquipmentTracker.Api.Dto;
 using EquipmentTracker.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
+    [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {

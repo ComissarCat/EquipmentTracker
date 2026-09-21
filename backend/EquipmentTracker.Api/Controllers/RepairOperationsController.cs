@@ -21,7 +21,6 @@ public class RepairOperationsController : ControllerBase
         _db.CurrentAccountLogin = currentUser.Login;
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<List<RepairOperationDto>>> GetAll()
     {

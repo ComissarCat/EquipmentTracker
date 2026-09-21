@@ -26,7 +26,6 @@ public class SparePartsController : ControllerBase
         _db.CurrentAccountLogin = currentUser.Login;
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<List<SparePartDto>>> GetAll()
     {

@@ -15,10 +15,10 @@ namespace EquipmentTracker.Api.Controllers;
 // Генерация Excel-отчётов по выбранной технике. Портировано с адаптацией под новую
 // схему (единая иерархия Locations вместо отдельных таблиц Buildings/Cabinets/Complects)
 // из исходного проекта: https://github.com/ComissarCat/Hardware (ExportManager.cs).
-// Просмотр/экспорт техники не требует авторизации — как и остальные GET-эндпоинты техники.
+// Экспорт доступен любой роли (в т.ч. «Только чтение»); без входа — нет.
 [ApiController]
 [Route("api/export")]
-[AllowAnonymous]
+[Authorize(Policy = "Viewer")]
 public class ExportController : ControllerBase
 {
     private const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

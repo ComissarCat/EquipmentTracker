@@ -165,15 +165,13 @@ export function EquipmentUnitDetailPage() {
 
       <div className="detail-blocks">
         <RepairHistory repairs={repairs} />
-        {isOperator && (
-          <EntityHistory
-            entityType="EquipmentUnit"
-            entityId={unit.id}
-            locations={locations}
-            equipmentNames={equipmentNames}
-            refreshKey={historyVersion}
-          />
-        )}
+        <EntityHistory
+          entityType="EquipmentUnit"
+          entityId={unit.id}
+          locations={locations}
+          equipmentNames={equipmentNames}
+          refreshKey={historyVersion}
+        />
       </div>
 
       {showRepairModal && (

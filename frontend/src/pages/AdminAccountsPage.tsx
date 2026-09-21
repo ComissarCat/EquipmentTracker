@@ -3,7 +3,7 @@ import { apiClient } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import type { Account } from '../types';
 
-const ALL_ROLES = ['Operator', 'Administrator'];
+import { ALL_ROLES, roleLabel } from '../utils/roles';
 
 export function AdminAccountsPage() {
   const { user } = useAuth();
@@ -52,7 +52,7 @@ export function AdminAccountsPage() {
                 <tr key={a.id}>
                   <td>{a.login}{isSelf && <span className="muted"> (это вы)</span>}</td>
                   <td>{a.fullName}</td>
-                  <td>{a.roles.join(', ')}</td>
+                  <td>{a.roles.map(roleLabel).join(', ')}</td>
                   <td>
                     <button onClick={() => setEditing(a)}>Изменить</button>
                     <button
@@ -140,7 +140,7 @@ function AccountModal(props: { account: Account | null; onCancel: () => void; on
           {ALL_ROLES.map((role) => (
             <label key={role} className="checkbox-label">
               <input type="checkbox" checked={roles.includes(role)} onChange={() => toggleRole(role)} />
-              {role === 'Operator' ? 'Оператор' : 'Администратор'}
+              {roleLabel(role)}
             </label>
           ))}
         </fieldset>

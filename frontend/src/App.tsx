@@ -9,6 +9,8 @@ import { HistoryPage } from './pages/HistoryPage';
 import { WriteOffsPage } from './pages/WriteOffsPage';
 import { EquipmentUnitDetailPage } from './pages/EquipmentUnitDetailPage';
 import { ExportPage } from './pages/ExportPage';
+import { RepairsPage } from './pages/RepairsPage';
+import { roleLabel } from './utils/roles';
 
 function RequireRole({ role, children }: { role: 'operator' | 'administrator'; children: React.ReactNode }) {
   const { isOperator, isAdministrator, user } = useAuth();
@@ -27,7 +29,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
-  const { user, logout, isOperator, isAdministrator } = useAuth();
+  const { user, logout, isAdministrator } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -36,19 +38,22 @@ function Layout({ children }: { children: React.ReactNode }) {
         <Link to="/" className="brand">
           Учёт техники
         </Link>
+        {user && (
         <nav>
           <Link to="/">Главная</Link>
           <Link to="/export">Экспорт</Link>
-          {isOperator && <Link to="/catalogs">Справочники</Link>}
-          {isOperator && <Link to="/write-offs">Списания</Link>}
-          {isOperator && <Link to="/history">История</Link>}
+          <Link to="/repairs">Ремонты</Link>
+          <Link to="/catalogs">Справочники</Link>
+          <Link to="/write-offs">Списания</Link>
+          <Link to="/history">История</Link>
           {isAdministrator && <Link to="/admin/accounts">Учётные записи</Link>}
         </nav>
+        )}
         <div className="header-right">
           {user ? (
             <>
               <span className="muted">
-                {user.fullName} ({user.roles.join(', ') || 'без роли'})
+                {user.fullName} ({user.roles.map(roleLabel).join(', ') || 'без роли'})
               </span>
               <button
                 onClick={() => {
@@ -69,45 +74,23 @@ function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Анонимного доступа нет: все страницы, кроме входа, требуют авторизации. «Только чтение»,
+// Оператор и Администратор видят одни и те же страницы; права на изменения проверяются кнопками
+// (isOperator/isAdministrator) в самих страницах и, главное, на сервере.
+const authed = (page: React.ReactNode) => <RequireAuth>{page}</RequireAuth>;
+
 export default function App() {
   return (
     <Layout>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<MainPage />} />
-        <Route
-          path="/equipment-units/:id"
-          element={
-            <RequireAuth>
-              <EquipmentUnitDetailPage />
-            </RequireAuth>
-          }
-        />
-        <Route path="/export" element={<ExportPage />} />
-        <Route
-          path="/catalogs"
-          element={
-            <RequireRole role="operator">
-              <CatalogsPage />
-            </RequireRole>
-          }
-        />
-        <Route
-          path="/write-offs"
-          element={
-            <RequireRole role="operator">
-              <WriteOffsPage />
-            </RequireRole>
-          }
-        />
-        <Route
-          path="/history"
-          element={
-            <RequireRole role="operator">
-              <HistoryPage />
-            </RequireRole>
-          }
-        />
+        <Route path="/" element={authed(<MainPage />)} />
+        <Route path="/equipment-units/:id" element={authed(<EquipmentUnitDetailPage />)} />
+        <Route path="/export" element={authed(<ExportPage />)} />
+        <Route path="/repairs" element={authed(<RepairsPage />)} />
+        <Route path="/catalogs" element={authed(<CatalogsPage />)} />
+        <Route path="/write-offs" element={authed(<WriteOffsPage />)} />
+        <Route path="/history" element={authed(<HistoryPage />)} />
         <Route
           path="/admin/accounts"
           element={

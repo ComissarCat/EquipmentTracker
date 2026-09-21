@@ -22,7 +22,6 @@ public class LocationsController : ControllerBase
     }
 
     // Просмотр списка локаций доступен без авторизации
-    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<List<LocationDto>>> GetAll()
     {
@@ -30,7 +29,6 @@ public class LocationsController : ControllerBase
         return locations.Select(ToDto).ToList();
     }
 
-    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<LocationDto>> GetById(int id)
     {

@@ -28,6 +28,9 @@ public static class DbInitializer
             db.Roles.Add(adminRole);
         }
 
+        if (!await db.Roles.AnyAsync(r => r.Name == RoleNames.Viewer))
+            db.Roles.Add(new Role { Name = RoleNames.Viewer });
+
         await db.SaveChangesAsync();
 
         var adminLogin = config["DefaultAdmin:Login"] ?? "admin";

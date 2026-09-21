@@ -92,3 +92,17 @@ export interface SparePartWriteOff {
   equipmentUnitId: number | null;
   equipmentUnitTitle: string | null;
 }
+
+// Строка общего списка ремонтов (страница «Ремонты»)
+export interface RepairListItem {
+  id: number;
+  date: string; // yyyy-MM-dd
+  equipmentUnitId: number;
+  equipmentUnitTitle: string;
+  inventoryNumber: string | null;
+  note: string | null;
+  accountLogin: string;
+  createdUtc: string;
+  operations: RepairOperation[];
+  parts: RepairPart[];
+}

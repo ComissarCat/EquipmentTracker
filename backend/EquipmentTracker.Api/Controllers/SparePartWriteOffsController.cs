@@ -13,7 +13,7 @@ namespace EquipmentTracker.Api.Controllers;
 // на склад (отмена = вернуть всё списанное). Отрицательное/нулевое количество в правке запрещено.
 [ApiController]
 [Route("api/spare-part-write-offs")]
-[Authorize(Policy = "Operator")]
+[Authorize(Policy = "Viewer")]
 public class SparePartWriteOffsController : ControllerBase
 {
     private readonly AppDbContext _db;

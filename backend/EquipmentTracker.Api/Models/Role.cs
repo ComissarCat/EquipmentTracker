@@ -4,6 +4,8 @@ public static class RoleNames
 {
     public const string Operator = "Operator";
     public const string Administrator = "Administrator";
+    // «Только чтение»: просмотр всех данных и экспорт без права что-либо изменять
+    public const string Viewer = "Viewer";
 }
 
 public class Role

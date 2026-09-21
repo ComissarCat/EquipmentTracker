@@ -7,11 +7,11 @@ using Microsoft.EntityFrameworkCore;
 namespace EquipmentTracker.Api.Controllers;
 
 // Просмотр истории редактирования технических справочников.
-// Доступен авторизованным пользователям (Operator/Administrator) — история содержит
-// служебные данные редактирования, поэтому не открывается анонимно.
+// Доступна любой авторизованной роли (Viewer/Operator/Administrator) — история содержит
+// служебные данные редактирования, поэтому без входа недоступна (роли «Только чтение» просмотр разрешён).
 [ApiController]
 [Route("api/history")]
-[Authorize(Policy = "Operator")]
+[Authorize(Policy = "Viewer")]
 public class HistoryController : ControllerBase
 {
     private readonly AppDbContext _db;

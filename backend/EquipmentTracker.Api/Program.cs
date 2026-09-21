@@ -51,6 +51,17 @@ builder.Services.AddAuthentication(options =>
 // Politики авторизации: Operator доступен также Administrator-ам (роль включает оператора)
 builder.Services.AddAuthorization(options =>
 {
+    // Любая из известных ролей: «Только чтение», Оператор или Администратор.
+    // Это и политика по умолчанию, и запасная (FallbackPolicy) — эндпоинты без атрибута авторизации
+    // тоже требуют входа. Анонимно доступен только вход ([AllowAnonymous] у AuthController.Login).
+    var viewerPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .RequireRole(RoleNames.Viewer, RoleNames.Operator, RoleNames.Administrator)
+        .Build();
+    options.AddPolicy("Viewer", viewerPolicy);
+    options.DefaultPolicy = viewerPolicy;
+    options.FallbackPolicy = viewerPolicy;
+
     options.AddPolicy("Operator", policy =>
         policy.RequireRole(RoleNames.Operator, RoleNames.Administrator));
     options.AddPolicy("Administrator", policy =>

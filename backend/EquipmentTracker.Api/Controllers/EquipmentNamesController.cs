@@ -21,7 +21,6 @@ public class EquipmentNamesController : ControllerBase
         _db.CurrentAccountLogin = currentUser.Login;
     }
 
-    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<List<EquipmentNameDto>>> GetAll()
     {

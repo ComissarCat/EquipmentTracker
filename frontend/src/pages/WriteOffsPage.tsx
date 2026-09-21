@@ -11,7 +11,7 @@ const PAGE_SIZE = 100;
 // История списаний расходных частей: и через ремонты, и через выдачи (одна таблица на сервере).
 // Здесь же — кнопка «Выдать расходные части» для фиксации выдачи, не связанной с ремонтом.
 export function WriteOffsPage() {
-  const { isAdministrator } = useAuth();
+  const { isOperator, isAdministrator } = useAuth();
   const [items, setItems] = useState<SparePartWriteOff[]>([]);
   const [spareParts, setSpareParts] = useState<SparePart[]>([]);
   const [sparePartId, setSparePartId] = useState('');
@@ -100,9 +100,11 @@ export function WriteOffsPage() {
       <h1>Списания расходных частей</h1>
       {error && <div className="error-banner" onClick={() => setError(null)}>{error}</div>}
 
+      {isOperator && (
       <div className="toolbar">
         <button onClick={() => setShowIssueModal(true)}>Выдать расходные части</button>
       </div>
+      )}
 
       <div className="inline-form" style={{ flexWrap: 'wrap' }}>
         <label>

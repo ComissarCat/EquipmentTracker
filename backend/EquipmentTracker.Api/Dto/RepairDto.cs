@@ -53,3 +53,16 @@ public record SparePartWriteOffDto(
 
 // Администратор: изменение строки списания. Quantity строго > 0 (для обнуления есть отмена).
 public record UpdateSparePartWriteOffRequest(int SparePartId, int Quantity);
+
+// Строка общего списка ремонтов (по всей технике)
+public record RepairListItemDto(
+    int Id,
+    DateOnly Date,
+    int EquipmentUnitId,
+    string EquipmentUnitTitle,
+    string? InventoryNumber,
+    string? Note,
+    string AccountLogin,
+    DateTime CreatedUtc,
+    List<RepairOperationDto> Operations,
+    List<WriteOffPartDto> Parts);

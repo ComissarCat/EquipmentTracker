@@ -22,7 +22,6 @@ public class EquipmentUnitsController : ControllerBase
     }
 
     // Просмотр всего списка техники (используется для построения дерева на главной странице)
-    [AllowAnonymous]
     [HttpGet]
     public async Task<ActionResult<List<EquipmentUnitDto>>> GetAll()
     {
@@ -33,7 +32,6 @@ public class EquipmentUnitsController : ControllerBase
         return units.Select(ToDto).ToList();
     }
 
-    [AllowAnonymous]
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EquipmentUnitDto>> GetById(int id)
     {
