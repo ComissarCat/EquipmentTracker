@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
+import { useAuth } from '../contexts/AuthContext';
 import { SparePartIssueModal } from '../components/SparePartIssueModal';
 import type { SparePart, SparePartWriteOff } from '../types';
 import { formatIsoDate } from '../utils/dates';
@@ -10,6 +11,7 @@ const PAGE_SIZE = 100;
 // История списаний расходных частей: и через ремонты, и через выдачи (одна таблица на сервере).
 // Здесь же — кнопка «Выдать расходные части» для фиксации выдачи, не связанной с ремонтом.
 export function WriteOffsPage() {
+  const { isAdministrator } = useAuth();
   const [items, setItems] = useState<SparePartWriteOff[]>([]);
   const [spareParts, setSpareParts] = useState<SparePart[]>([]);
   const [sparePartId, setSparePartId] = useState('');
@@ -20,6 +22,10 @@ export function WriteOffsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showIssueModal, setShowIssueModal] = useState(false);
+  // Правка строки списания (только администратор)
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editPartId, setEditPartId] = useState('');
+  const [editQuantity, setEditQuantity] = useState('1');
 
   const fetchPage = useCallback(
     async (pageToLoad: number) => {
@@ -50,6 +56,40 @@ export function WriteOffsPage() {
       .then((res) => setSpareParts(res.data))
       .catch(() => setError('Не удалось загрузить расходные части'));
   }, []);
+
+  const refreshParts = () =>
+    apiClient.get<SparePart[]>('/api/spare-parts').then((res) => setSpareParts(res.data)).catch(() => {});
+
+  const startEdit = (w: SparePartWriteOff) => {
+    setEditingId(w.id);
+    setEditPartId(String(w.sparePartId));
+    setEditQuantity(String(w.quantity));
+  };
+
+  const saveEdit = async (id: number) => {
+    try {
+      await apiClient.put(`/api/spare-part-write-offs/${id}`, {
+        sparePartId: Number(editPartId),
+        quantity: Number(editQuantity)
+      });
+      setEditingId(null);
+      reload();
+      refreshParts();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось изменить списание');
+    }
+  };
+
+  const cancelWriteOff = async (w: SparePartWriteOff) => {
+    if (!window.confirm(`Отменить списание «${w.sparePartName}» × ${w.quantity}? Количество вернётся на склад.`)) return;
+    try {
+      await apiClient.delete(`/api/spare-part-write-offs/${w.id}`);
+      reload();
+      refreshParts();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось отменить списание');
+    }
+  };
 
   useEffect(() => {
     reload();
@@ -100,6 +140,7 @@ export function WriteOffsPage() {
               <th>Количество</th>
               <th>Кому / на какую технику</th>
               <th>Кем зафиксировано</th>
+              {isAdministrator && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -107,8 +148,31 @@ export function WriteOffsPage() {
               <tr key={w.id}>
                 <td>{formatIsoDate(w.date)}</td>
                 <td>{w.kind === 'Repair' ? 'Ремонт' : 'Выдача'}</td>
-                <td>{w.sparePartName}</td>
-                <td>{w.quantity}</td>
+                <td>
+                  {editingId === w.id ? (
+                    <select value={editPartId} onChange={(e) => setEditPartId(e.target.value)}>
+                      {spareParts.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    w.sparePartName
+                  )}
+                </td>
+                <td>
+                  {editingId === w.id ? (
+                    <input
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={editQuantity}
+                      onChange={(e) => setEditQuantity(e.target.value)}
+                      style={{ width: 80 }}
+                    />
+                  ) : (
+                    w.quantity
+                  )}
+                </td>
                 <td>
                   {w.kind === 'Repair' ? (
                     <Link to={`/equipment-units/${w.equipmentUnitId}`}>{w.equipmentUnitTitle}</Link>
@@ -117,11 +181,26 @@ export function WriteOffsPage() {
                   )}
                 </td>
                 <td>{w.accountLogin}</td>
+                {isAdministrator && (
+                  <td>
+                    {editingId === w.id ? (
+                      <>
+                        <button onClick={() => saveEdit(w.id)} disabled={!(Number(editQuantity) > 0)}>Сохранить</button>
+                        <button onClick={() => setEditingId(null)}>Отмена</button>
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => startEdit(w)}>Изменить</button>
+                        <button onClick={() => cancelWriteOff(w)}>Отменить списание</button>
+                      </>
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted" style={{ textAlign: 'center', padding: 16 }}>
+                <td colSpan={isAdministrator ? 7 : 6} className="muted" style={{ textAlign: 'center', padding: 16 }}>
                   Списаний не найдено
                 </td>
               </tr>
@@ -145,7 +224,7 @@ export function WriteOffsPage() {
             setShowIssueModal(false);
             reload();
             // остатки изменились — обновим список частей (в фильтре и т.п.)
-            apiClient.get<SparePart[]>('/api/spare-parts').then((res) => setSpareParts(res.data)).catch(() => {});
+            refreshParts();
           }}
         />
       )}

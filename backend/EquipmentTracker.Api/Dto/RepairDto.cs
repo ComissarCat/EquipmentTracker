@@ -50,3 +50,6 @@ public record SparePartWriteOffDto(
     int? RepairId,
     int? EquipmentUnitId,
     string? EquipmentUnitTitle);
+
+// Администратор: изменение строки списания. Quantity строго > 0 (для обнуления есть отмена).
+public record UpdateSparePartWriteOffRequest(int SparePartId, int Quantity);
