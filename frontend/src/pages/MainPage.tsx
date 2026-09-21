@@ -4,6 +4,9 @@ import { apiClient } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { TreeExplorer, type NodeKey, type DragPayload, parseKey } from '../components/TreeExplorer';
 import type { EquipmentName, EquipmentUnit, LocationItem } from '../types';
+import { InventoryBanner } from '../components/InventoryBanner';
+import { useActiveInventory } from '../hooks/useActiveInventory';
+import { unitIdsInSelection } from '../utils/inventory';
 
 type ModalState =
   | { kind: 'none' }
@@ -15,6 +18,7 @@ type ModalState =
 export function MainPage() {
   const { isOperator } = useAuth();
   const navigate = useNavigate();
+  const inventory = useActiveInventory();
 
   const [locations, setLocations] = useState<LocationItem[]>([]);
   const [units, setUnits] = useState<EquipmentUnit[]>([]);
@@ -35,6 +39,7 @@ export function MainPage() {
     setLocations(locRes.data);
     setUnits(unitRes.data);
     setEquipmentNames(nameRes.data);
+    inventory.refresh(); // техники стало больше/меньше — обновляем счётчики инвентаризации
   };
 
   useEffect(() => {
@@ -131,6 +136,39 @@ export function MainPage() {
 
   const closeModal = () => setModal({ kind: 'none' });
 
+  // Подтверждение данных при инвентаризации (и отмена подтверждения): выбранные единицы + вся
+  // техника в выбранных локациях
+  const changeConfirmation = async (keys: Set<NodeKey>, mode: 'confirm' | 'unconfirm') => {
+    if (!inventory.inventory || keys.size === 0) return;
+    const parsed = Array.from(keys).map(parseKey);
+    const selectedUnitIds = parsed.filter((p) => p.kind === 'unit').map((p) => p.id);
+    const selectedLocationIds = parsed.filter((p) => p.kind === 'location').map((p) => p.id);
+
+    const affected = unitIdsInSelection(selectedUnitIds, selectedLocationIds, locations, units);
+    const applicable = affected.filter((id) => inventory.confirmations.has(id) === (mode === 'unconfirm'));
+    if (applicable.length === 0) {
+      window.alert(
+        mode === 'confirm' ? 'Вся выбранная техника уже подтверждена.' : 'В выбранном нет подтверждённой техники.'
+      );
+      return;
+    }
+    const question =
+      mode === 'confirm'
+        ? `Подтвердить данные о технике: ${applicable.length} шт.?`
+        : `Снять подтверждение с техники: ${applicable.length} шт.?`;
+    if (!window.confirm(question)) return;
+
+    try {
+      await apiClient.post(`/api/inventories/active/${mode}`, {
+        unitIds: selectedUnitIds,
+        locationIds: selectedLocationIds
+      });
+      await inventory.refresh();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось изменить подтверждение');
+    }
+  };
+
   // Панель инструментов одной стороны (слева/справа) — создание, открытие, редактирование, удаление
   const renderPaneToolbar = (selected: Set<NodeKey>, setSelected: (s: Set<NodeKey>) => void) => {
     const singleKey = selected.size === 1 ? Array.from(selected)[0] : null;
@@ -150,6 +188,24 @@ export function MainPage() {
         <button onClick={() => openUnitPage(selected)} disabled={!singleIsUnit} title="Открыть карточку единицы техники">
           Открыть
         </button>
+        {isOperator && inventory.inventory && (
+          <>
+            <button
+              onClick={() => changeConfirmation(selected, 'confirm')}
+              disabled={selected.size === 0}
+              title="Подтвердить данные о выбранной технике (для локаций — о всей технике внутри)"
+            >
+              Подтвердить{selected.size > 1 ? ` (${selected.size})` : ''}
+            </button>
+            <button
+              onClick={() => changeConfirmation(selected, 'unconfirm')}
+              disabled={selected.size === 0}
+              title="Снять подтверждение с выбранной техники (для локаций — со всей техники внутри)"
+            >
+              Снять подтверждение
+            </button>
+          </>
+        )}
         {isOperator && (
           <>
             <button onClick={() => openEdit(selected)} disabled={selected.size !== 1}>
@@ -166,6 +222,7 @@ export function MainPage() {
 
   return (
     <div className="main-page">
+      {inventory.inventory && <InventoryBanner inventory={inventory.inventory} />}
       {error && (
         <div className="error-banner" onClick={() => setError(null)}>
           {error} (нажмите, чтобы скрыть)
@@ -184,6 +241,7 @@ export function MainPage() {
             canEdit={isOperator}
             onDropOnLocation={moveItems}
             onOpenUnit={(unitId) => navigate(`/equipment-units/${unitId}`)}
+            confirmedUnitIds={inventory.inventory ? inventory.confirmations : null}
           />
         </div>
 
@@ -217,6 +275,7 @@ export function MainPage() {
             canEdit={isOperator}
             onDropOnLocation={moveItems}
             onOpenUnit={(unitId) => navigate(`/equipment-units/${unitId}`)}
+            confirmedUnitIds={inventory.inventory ? inventory.confirmations : null}
           />
         </div>
       </div>

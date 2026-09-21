@@ -10,6 +10,8 @@ import { WriteOffsPage } from './pages/WriteOffsPage';
 import { EquipmentUnitDetailPage } from './pages/EquipmentUnitDetailPage';
 import { ExportPage } from './pages/ExportPage';
 import { RepairsPage } from './pages/RepairsPage';
+import { InventoriesPage } from './pages/InventoriesPage';
+import { InventoryDetailPage } from './pages/InventoryDetailPage';
 import { roleLabel } from './utils/roles';
 
 function RequireRole({ role, children }: { role: 'operator' | 'administrator'; children: React.ReactNode }) {
@@ -47,6 +49,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           <Link to="/repairs">Ремонты</Link>
           <Link to="/catalogs">Справочники</Link>
           <Link to="/write-offs">Списания</Link>
+          <Link to="/inventories">Инвентаризации</Link>
           <Link to="/history">История</Link>
           {isAdministrator && <Link to="/admin/accounts">Учётные записи</Link>}
         </nav>
@@ -92,6 +95,8 @@ export default function App() {
         <Route path="/repairs" element={authed(<RepairsPage />)} />
         <Route path="/catalogs" element={authed(<CatalogsPage />)} />
         <Route path="/write-offs" element={authed(<WriteOffsPage />)} />
+        <Route path="/inventories" element={authed(<InventoriesPage />)} />
+        <Route path="/inventories/:id" element={authed(<InventoryDetailPage />)} />
         <Route path="/history" element={authed(<HistoryPage />)} />
         <Route
           path="/admin/accounts"

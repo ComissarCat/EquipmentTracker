@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using EquipmentTracker.Api.Data;
 using EquipmentTracker.Api.Dto;
 using EquipmentTracker.Api.Models;
+using EquipmentTracker.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -50,8 +51,30 @@ public class ExportController : ControllerBase
 
         var locationsById = await _db.Locations.AsNoTracking().ToDictionaryAsync(l => l.Id);
 
+        var rows = units
+            .Select(u => new ListRow(
+                FullPath(u.LocationId, locationsById), u.EquipmentName.EquipmentType.Name, u.EquipmentName.Name,
+                u.SerialNumber, u.InventoryNumber, u.Note))
+            .OrderBy(r => r.Location, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Serial, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (rows.Count == 0)
+            return BadRequest(new { message = "Выбранная техника не найдена" });
+
+        var bytes = BuildListWorkbook(rows, "Техника", "Техника");
+        return File(bytes, XlsxContentType, $"spisok-tehniki-{DateTime.Now:yyyyMMdd-HHmm}.xlsx");
+    }
+
+    private sealed record ListRow(string Location, string Type, string Name, string Serial, string? InventoryNumber, string? Note);
+
+    // Простой список техники в виде "умной таблицы" Excel, шрифт Courier New 12pt — как в исходном проекте.
+    // Используется и списком выбранной техники, и выгрузкой неподтверждённой техники инвентаризации.
+    // rows не должен быть пустым (таблица Excel требует хотя бы одну строку данных).
+    private static byte[] BuildListWorkbook(List<ListRow> rows, string sheetName, string tableName)
+    {
         using var package = new ExcelPackage();
-        var worksheet = package.Workbook.Worksheets.Add("Техника");
+        var worksheet = package.Workbook.Worksheets.Add(sheetName);
 
         worksheet.Cells.Style.Font.Name = "Courier New";
         worksheet.Cells.Style.Font.Size = 12;
@@ -65,30 +88,44 @@ public class ExportController : ControllerBase
         worksheet.Cells[1, 5].Value = "И/н";
         worksheet.Cells[1, 6].Value = "Примечание";
 
-        var ordered = units
-            .OrderBy(u => FullPath(u.LocationId, locationsById), StringComparer.OrdinalIgnoreCase)
-            .ThenBy(u => u.SerialNumber, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
         var row = 2;
-        foreach (var u in ordered)
+        foreach (var r in rows)
         {
-            worksheet.Cells[row, 1].Value = FullPath(u.LocationId, locationsById);
-            worksheet.Cells[row, 2].Value = u.EquipmentName.EquipmentType.Name;
-            worksheet.Cells[row, 3].Value = u.EquipmentName.Name;
-            worksheet.Cells[row, 4].Value = u.SerialNumber;
-            worksheet.Cells[row, 5].Value = u.InventoryNumber;
-            worksheet.Cells[row, 6].Value = u.Note;
+            worksheet.Cells[row, 1].Value = r.Location;
+            worksheet.Cells[row, 2].Value = r.Type;
+            worksheet.Cells[row, 3].Value = r.Name;
+            worksheet.Cells[row, 4].Value = r.Serial;
+            worksheet.Cells[row, 5].Value = r.InventoryNumber;
+            worksheet.Cells[row, 6].Value = r.Note;
             row++;
         }
 
         var range = worksheet.Cells[1, 1, row - 1, 6];
-        var table = worksheet.Tables.Add(range, "Техника");
+        var table = worksheet.Tables.Add(range, tableName);
         table.TableStyle = TableStyles.Light16;
         range.AutoFitColumns();
 
-        var bytes = await package.GetAsByteArrayAsync();
-        return File(bytes, XlsxContentType, $"spisok-tehniki-{DateTime.Now:yyyyMMdd-HHmm}.xlsx");
+        return package.GetAsByteArray();
+    }
+
+    // Выгрузка неподтверждённой техники инвентаризации (для идущей — по живым данным, для
+    // остановленной — итоговый снимок). Формат такой же, как у списка техники на странице «Экспорт».
+    [HttpGet("inventories/{id:int}/unresolved")]
+    public async Task<IActionResult> InventoryUnresolved(int id)
+    {
+        var inventory = await _db.Inventories.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id);
+        if (inventory is null) return NotFound();
+
+        var unresolved = await InventoryQueries.UnresolvedAsync(_db, inventory);
+        if (unresolved.Count == 0)
+            return BadRequest(new { message = "Неподтверждённой техники нет — выгружать нечего" });
+
+        var rows = unresolved
+            .Select(u => new ListRow(u.LocationPath, u.TypeName, u.Name, u.SerialNumber, u.InventoryNumber, u.Note))
+            .ToList();
+
+        var bytes = BuildListWorkbook(rows, "Неподтверждённая", "Неподтверждённая");
+        return File(bytes, XlsxContentType, $"inventarizaciya-{id}-nepodtverzhdennaya-tehnika-{DateTime.Now:yyyyMMdd-HHmm}.xlsx");
     }
 
     // Инвентарные карточки — по одному листу на "кабинет", оформление и настройки печати
@@ -408,22 +445,11 @@ public class ExportController : ControllerBase
         #endregion
     }
 
-    // Полная цепочка локаций от корня до данной (включительно)
-    private static List<Location> AncestorChain(int locationId, Dictionary<int, Location> byId)
-    {
-        var chain = new List<Location>();
-        if (!byId.TryGetValue(locationId, out var cur)) return chain;
-        while (true)
-        {
-            chain.Insert(0, cur);
-            if (cur.ParentLocationId is null || !byId.TryGetValue(cur.ParentLocationId.Value, out var parent)) break;
-            cur = parent;
-        }
-        return chain;
-    }
+    private static List<Location> AncestorChain(int locationId, Dictionary<int, Location> byId) =>
+        LocationPaths.AncestorChain(locationId, byId);
 
     private static string FullPath(int locationId, Dictionary<int, Location> byId) =>
-        string.Join(" → ", AncestorChain(locationId, byId).Select(l => l.Name));
+        LocationPaths.FullPath(locationId, byId);
 
     // Имя листа Excel: только буквы/цифры/пробелы (как в исходном проекте), не длиннее 31
     // символа (ограничение Excel) и гарантированно уникальное в пределах книги.

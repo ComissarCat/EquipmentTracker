@@ -201,3 +201,17 @@ main { flex: 1; padding: 16px 20px; }
   .export-tree-panel { height: 60vh; }
   .pane-toolbar button, .toolbar button { flex: 1 1 auto; }
 }
+
+/* --- Инвентаризация --- */
+.inventory-banner { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; font-size: 14px; }
+.inv-mark { display: inline-block; width: 1.1em; text-align: center; font-weight: 700; margin-right: 2px; }
+.inv-mark.ok { color: #15803d; }
+.inv-mark.pending { color: #d97706; }
+.tree-row.inv-pending { background: #fffbeb; }
+.tree-row.inv-pending.selected { background: #dbeafe; }
+.progress { display: inline-block; vertical-align: middle; width: 120px; height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; margin-right: 8px; }
+.progress > span { display: block; height: 100%; background: #16a34a; }
+.stat-cards { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+.stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 16px; min-width: 120px; }
+.stat-card .stat-value { font-size: 22px; font-weight: 700; }
+.stat-card .stat-label { color: #6b7280; font-size: 12px; }

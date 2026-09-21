@@ -34,6 +34,9 @@ public class AppDbContext : DbContext
     public DbSet<Repair> Repairs => Set<Repair>();
     public DbSet<SparePartWriteOff> SparePartWriteOffs => Set<SparePartWriteOff>();
     public DbSet<SparePartIssue> SparePartIssues => Set<SparePartIssue>();
+    public DbSet<Inventory> Inventories => Set<Inventory>();
+    public DbSet<InventoryConfirmation> InventoryConfirmations => Set<InventoryConfirmation>();
+    public DbSet<InventoryUnresolvedUnit> InventoryUnresolvedUnits => Set<InventoryUnresolvedUnit>();
     public DbSet<EditHistoryEntry> HistoryEntries => Set<EditHistoryEntry>();
 
     // Типы сущностей, для которых ведётся история редактирования
@@ -157,6 +160,26 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<SparePartIssue>()
             .HasIndex(i => i.Date);
+
+        // Инвентаризация: одновременно активна не более одной — гарантируется уникальным
+        // частичным индексом по IsActive (даже при гонке двух запусков вторая не сохранится).
+        modelBuilder.Entity<Inventory>()
+            .HasIndex(i => i.IsActive)
+            .IsUnique()
+            .HasFilter("\"IsActive\"");
+
+        modelBuilder.Entity<InventoryConfirmation>()
+            .HasKey(c => new { c.InventoryId, c.EquipmentUnitId });
+        modelBuilder.Entity<InventoryConfirmation>()
+            .HasOne(c => c.Inventory).WithMany(i => i.Confirmations)
+            .HasForeignKey(c => c.InventoryId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<InventoryConfirmation>()
+            .HasOne(c => c.EquipmentUnit).WithMany()
+            .HasForeignKey(c => c.EquipmentUnitId).OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<InventoryUnresolvedUnit>()
+            .HasOne(u => u.Inventory).WithMany(i => i.UnresolvedUnits)
+            .HasForeignKey(u => u.InventoryId).OnDelete(DeleteBehavior.Cascade);
     }
 
     public override int SaveChanges()

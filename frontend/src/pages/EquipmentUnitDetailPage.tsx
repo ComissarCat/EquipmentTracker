@@ -6,6 +6,8 @@ import type { EquipmentName, EquipmentUnit, LocationItem, Repair } from '../type
 import { EntityHistory } from '../components/EntityHistory';
 import { RepairHistory } from '../components/RepairHistory';
 import { RepairModal } from '../components/RepairModal';
+import { InventoryBanner } from '../components/InventoryBanner';
+import { useActiveInventory } from '../hooks/useActiveInventory';
 
 // Карточка одной единицы техники: полные данные, полный путь локации до корня,
 // и (для Оператора/Администратора) возможность редактирования на месте.
@@ -14,6 +16,7 @@ export function EquipmentUnitDetailPage() {
   const unitId = Number(id);
   const { isOperator, isAdministrator } = useAuth();
   const navigate = useNavigate();
+  const inventory = useActiveInventory();
 
   const [unit, setUnit] = useState<EquipmentUnit | null>(null);
   const [locations, setLocations] = useState<LocationItem[]>([]);
@@ -69,6 +72,27 @@ export function EquipmentUnitDetailPage() {
     return chain;
   }, [unit, locationsById]);
 
+  // Подтверждение данных этой единицы в идущей инвентаризации
+  const confirmUnit = async () => {
+    try {
+      await apiClient.post('/api/inventories/active/confirm', { unitIds: [unitId] });
+      await inventory.refresh();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось подтвердить данные');
+    }
+  };
+
+  // Отмена подтверждения (если подтвердили по ошибке)
+  const unconfirmUnit = async () => {
+    if (!window.confirm('Снять подтверждение с этой единицы техники?')) return;
+    try {
+      await apiClient.post('/api/inventories/active/unconfirm', { unitIds: [unitId] });
+      await inventory.refresh();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось снять подтверждение');
+    }
+  };
+
   const removeRepair = async (repair: Repair) => {
     if (!window.confirm('Удалить этот ремонт? Списанные в нём расходные части вернутся на склад.')) return;
     try {
@@ -118,6 +142,35 @@ export function EquipmentUnitDetailPage() {
       <h1>
         {unit.equipmentNameName} — S/N {unit.serialNumber}
       </h1>
+
+      {inventory.inventory && (
+        <>
+          <InventoryBanner inventory={inventory.inventory} />
+          {(() => {
+            const confirmation = inventory.confirmations.get(unit.id);
+            return (
+              <div className="detail-actions" style={{ alignItems: 'center', marginBottom: 12 }}>
+                {confirmation ? (
+                  <>
+                    <span>
+                      <span className="inv-mark ok">✔</span> Данные подтверждены: {confirmation.confirmedByLogin},{' '}
+                      {new Date(confirmation.confirmedUtc).toLocaleString('ru-RU')}
+                    </span>
+                    {isOperator && <button onClick={unconfirmUnit}>Отменить подтверждение</button>}
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      <span className="inv-mark pending">●</span> Данные не подтверждены
+                    </span>
+                    {isOperator && <button onClick={confirmUnit}>Подтвердить данные</button>}
+                  </>
+                )}
+              </div>
+            );
+          })()}
+        </>
+      )}
 
       {!editing && (
         <>

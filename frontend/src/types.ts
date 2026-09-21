@@ -125,3 +125,41 @@ export interface SparePartIssue {
   modifiedByLogin: string | null;
   parts: RepairPart[];
 }
+
+// --- Инвентаризация ---
+export interface InventorySummary {
+  id: number;
+  startedUtc: string;
+  startedByLogin: string;
+  endedUtc: string | null;
+  endedByLogin: string | null;
+  isActive: boolean;
+  totalUnits: number;
+  confirmedUnits: number;
+}
+
+export interface InventoryConfirmation {
+  equipmentUnitId: number;
+  confirmedUtc: string;
+  confirmedByLogin: string;
+}
+
+export interface ActiveInventory {
+  inventory: InventorySummary | null;
+  confirmations: InventoryConfirmation[];
+}
+
+export interface InventoryUnresolvedUnit {
+  equipmentUnitId: number | null;
+  typeName: string;
+  name: string;
+  serialNumber: string;
+  inventoryNumber: string | null;
+  note: string | null;
+  locationPath: string;
+}
+
+export interface InventoryDetails {
+  inventory: InventorySummary;
+  unresolved: InventoryUnresolvedUnit[];
+}

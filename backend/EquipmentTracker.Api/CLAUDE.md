@@ -70,6 +70,15 @@ frontend/src/
   на разницу «было − стало» (логика — `SparePartWriteOffs.ReplaceAsync/ReturnAll`, общая для обоих);
   удаление возвращает всё списанное. Автор и `CreatedUtc` не меняются, кто/когда правил —
   `ModifiedUtc/ModifiedByLogin` у `Repair` и `SparePartIssue`.
+- **Инвентаризация** (`Inventory`, `InventoryConfirmation`, `InventoryUnresolvedUnit`,
+  `InventoriesController`, `Services/InventoryQueries`): одна идущая одновременно — уникальный
+  частичный индекс по `Inventory.IsActive`. Пока идёт — «всего/подтверждено» считаются по живым данным
+  (новая техника = неподтверждённая, удаление техники каскадно убирает её подтверждение). При остановке
+  (Administrator) итоги замораживаются: `FinalTotalUnits/FinalConfirmedUnits` + снимок неподтверждённой
+  техники (без FK на технику). Подтверждает Operator+ (`POST /api/inventories/active/confirm`, единицы и/или
+  локации целиком); отмена — `POST /api/inventories/active/unconfirm` (Operator+, только идущая). Индикация во фронтенде — `useActiveInventory`, `TreeExplorer.confirmedUnitIds`.
+  Выгрузка неподтверждённой техники — `GET /api/export/inventories/{id}/unresolved` (общий
+  `BuildListWorkbook` с экспортом списка техники).
 - **Уникальность**: `Account.Login`, `EquipmentType.Name`, `EquipmentName.Name` (глобально, не
   в пределах типа), `EquipmentUnit.SerialNumber` — везде проверяется и в контроллере (понятная
   ошибка), и как индекс в БД.

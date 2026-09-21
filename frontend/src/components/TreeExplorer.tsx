@@ -1,5 +1,6 @@
 import React from 'react';
 import type { EquipmentUnit, LocationItem } from '../types';
+import { computeLocationStatus } from '../utils/inventory';
 
 // Ключ узла дерева: "loc:5" или "unit:12" — строкой, чтобы удобно хранить в Set для мультивыбора
 export type NodeKey = string;
@@ -23,12 +24,20 @@ interface TreeExplorerProps {
   onDropOnLocation: (payload: DragPayload, targetLocationId: number | null) => void;
   // Открыть страницу единицы техники (двойной клик по строке)
   onOpenUnit: (unitId: number) => void;
+  // Пока идёт инвентаризация — id подтверждённой техники (для индикации); null/undefined — инвентаризации нет
+  confirmedUnitIds?: { has: (id: number) => boolean } | null;
 }
 
 const ROOT_KEY = -1; // виртуальный "корень" панели, обозначает locationId = null
 
 export function TreeExplorer(props: TreeExplorerProps) {
-  const { locations, units, selectedKeys, onSelectionChange, canEdit, onDropOnLocation, panelTitle, onOpenUnit } = props;
+  const { locations, units, selectedKeys, onSelectionChange, canEdit, onDropOnLocation, panelTitle, onOpenUnit, confirmedUnitIds } = props;
+
+  // Индикация инвентаризации по локациям считается по ВСЕЙ технике внутри, независимо от поиска в панели
+  const locationStatus = React.useMemo(
+    () => (confirmedUnitIds ? computeLocationStatus(locations, units, confirmedUnitIds) : null),
+    [locations, units, confirmedUnitIds]
+  );
 
   // Каждая панель раскрывает/сворачивает узлы независимо от другой панели
   const [expanded, setExpanded] = React.useState<Set<number>>(new Set());
@@ -143,10 +152,12 @@ export function TreeExplorer(props: TreeExplorerProps) {
     const key = keyOf('unit', unit.id);
     visibleOrder.push(key);
     const isSelected = selectedKeys.has(key);
+    // null — инвентаризации нет; true/false — техника подтверждена/не подтверждена
+    const confirmed = confirmedUnitIds ? confirmedUnitIds.has(unit.id) : null;
     return (
       <div
         key={key}
-        className={`tree-row tree-unit ${isSelected ? 'selected' : ''}`}
+        className={`tree-row tree-unit ${isSelected ? 'selected' : ''} ${confirmed === false ? 'inv-pending' : ''}`}
         draggable={canEdit}
         onDragStart={(e) => handleDragStart(e, key)}
         onClick={(e) => selectWithModifiers(e, key)}
@@ -156,6 +167,14 @@ export function TreeExplorer(props: TreeExplorerProps) {
         }}
         title={unit.note ?? undefined}
       >
+        {confirmed !== null && (
+          <span
+            className={`inv-mark ${confirmed ? 'ok' : 'pending'}`}
+            title={confirmed ? 'Данные подтверждены' : 'Данные не подтверждены'}
+          >
+            {confirmed ? '✔' : '●'}
+          </span>
+        )}
         <span className="tree-icon">🖥️</span>
         <span className="tree-label">
           {unit.equipmentNameName} — S/N {unit.serialNumber}
@@ -207,6 +226,18 @@ export function TreeExplorer(props: TreeExplorerProps) {
           >
             {hasChildren ? (isExpanded ? '▾' : '▸') : '·'}
           </span>
+          {locationStatus && locationStatus.has(location.id) && (
+            <span
+              className={`inv-mark ${locationStatus.get(location.id)!.unconfirmed === 0 ? 'ok' : 'pending'}`}
+              title={
+                locationStatus.get(location.id)!.unconfirmed === 0
+                  ? 'Вся техника внутри подтверждена'
+                  : `Не подтверждено: ${locationStatus.get(location.id)!.unconfirmed} из ${locationStatus.get(location.id)!.total}`
+              }
+            >
+              {locationStatus.get(location.id)!.unconfirmed === 0 ? '✔' : '●'}
+            </span>
+          )}
           <span className="tree-icon">{isExpanded ? '📂' : '📁'}</span>
           <span className="tree-label">{location.name}</span>
         </div>
