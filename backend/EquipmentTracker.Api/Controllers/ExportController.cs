@@ -23,7 +23,8 @@ public class ExportController : ControllerBase
 {
     private const string XlsxContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     private static readonly Regex NonAlphaNumSpace = new(@"[^\p{L}\p{N}\s]");
-    private static readonly CultureInfo Ru = new("ru-RU");
+    // Проект работает в InvariantGlobalization (в образе нет ICU), поэтому культура ru-RU недоступна —
+    // сортировка идёт ordinal без учёта регистра.
 
     private readonly AppDbContext _db;
     private readonly IConfiguration _config;
@@ -65,8 +66,8 @@ public class ExportController : ControllerBase
         worksheet.Cells[1, 6].Value = "Примечание";
 
         var ordered = units
-            .OrderBy(u => FullPath(u.LocationId, locationsById), StringComparer.Create(Ru, false))
-            .ThenBy(u => u.SerialNumber, StringComparer.Create(Ru, false))
+            .OrderBy(u => FullPath(u.LocationId, locationsById), StringComparer.OrdinalIgnoreCase)
+            .ThenBy(u => u.SerialNumber, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var row = 2;
@@ -140,8 +141,8 @@ public class ExportController : ControllerBase
         var usedSheetNames = new HashSet<string>();
 
         var orderedGroups = groups.Values
-            .OrderBy(g => g.Building.Name, StringComparer.Create(Ru, false))
-            .ThenBy(g => g.Cabinet.Name, StringComparer.Create(Ru, false));
+            .OrderBy(g => g.Building.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(g => g.Cabinet.Name, StringComparer.OrdinalIgnoreCase);
 
         foreach (var group in orderedGroups)
             BuildCabinetWorksheet(package, group, orgName, okpoCode, usedSheetNames);
@@ -226,7 +227,7 @@ public class ExportController : ControllerBase
         worksheet.Cells[4, 10].Value = okpoCode;
         worksheet.Cells[4, 10, 4, 11].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
-        worksheet.Cells[5, 10].Value = DateTime.Now.ToShortDateString();
+        worksheet.Cells[5, 10].Value = DateTime.Now.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
         worksheet.Cells[5, 10, 5, 11].Merge = true;
         worksheet.Cells[5, 10].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
 
@@ -311,9 +312,9 @@ public class ExportController : ControllerBase
         // Внутри кабинета сортируем по ближайшей родительской локации (аналог "комплекта"),
         // затем по инвентарному и серийному номеру — так же, как в исходном проекте.
         var sortedItems = group.Items
-            .OrderBy(it => it.ImmediateParentName, StringComparer.Create(Ru, false))
-            .ThenBy(it => it.Unit.InventoryNumber, StringComparer.Create(Ru, false))
-            .ThenBy(it => it.Unit.SerialNumber, StringComparer.Create(Ru, false));
+            .OrderBy(it => it.ImmediateParentName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(it => it.Unit.InventoryNumber, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(it => it.Unit.SerialNumber, StringComparer.OrdinalIgnoreCase);
 
         foreach (var (unit, _) in sortedItems)
         {
