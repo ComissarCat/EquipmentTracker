@@ -35,5 +35,9 @@ public class SparePartIssue
 
     public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
+    // Заполняются, когда администратор изменил запись после создания
+    public DateTime? ModifiedUtc { get; set; }
+    public string? ModifiedByLogin { get; set; }
+
     public ICollection<SparePartWriteOff> WriteOffs { get; set; } = new List<SparePartWriteOff>();
 }

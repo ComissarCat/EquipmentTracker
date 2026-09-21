@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import type { RepairListItem } from '../types';
-import { formatIsoDate } from '../utils/dates';
+import { formatIsoDate, formatModified } from '../utils/dates';
 
 const PAGE_SIZE = 100;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -98,7 +98,10 @@ export function RepairsPage() {
                 <td>{r.operations.length > 0 ? r.operations.map((o) => o.name).join(', ') : '—'}</td>
                 <td>{r.parts.length > 0 ? r.parts.map((p) => `${p.name} × ${p.quantity}`).join(', ') : '—'}</td>
                 <td style={{ whiteSpace: 'pre-wrap' }}>{r.note || '—'}</td>
-                <td>{r.accountLogin}</td>
+                <td>
+                  {r.accountLogin}
+                  {r.modifiedUtc && <div className="muted">{formatModified(r.modifiedByLogin, r.modifiedUtc)}</div>}
+                </td>
               </tr>
             ))}
             {!loading && items.length === 0 && (

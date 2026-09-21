@@ -12,7 +12,7 @@ import { RepairModal } from '../components/RepairModal';
 export function EquipmentUnitDetailPage() {
   const { id } = useParams<{ id: string }>();
   const unitId = Number(id);
-  const { isOperator } = useAuth();
+  const { isOperator, isAdministrator } = useAuth();
   const navigate = useNavigate();
 
   const [unit, setUnit] = useState<EquipmentUnit | null>(null);
@@ -24,6 +24,7 @@ export function EquipmentUnitDetailPage() {
   const [editing, setEditing] = useState(false);
   const [repairs, setRepairs] = useState<Repair[]>([]);
   const [showRepairModal, setShowRepairModal] = useState(false);
+  const [editingRepair, setEditingRepair] = useState<Repair | null>(null);
   // Растёт при каждом изменении данных карточки — обновляет блок истории изменений
   const [historyVersion, setHistoryVersion] = useState(0);
 
@@ -67,6 +68,16 @@ export function EquipmentUnitDetailPage() {
     }
     return chain;
   }, [unit, locationsById]);
+
+  const removeRepair = async (repair: Repair) => {
+    if (!window.confirm('Удалить этот ремонт? Списанные в нём расходные части вернутся на склад.')) return;
+    try {
+      await apiClient.delete(`/api/equipment-units/${unitId}/repairs/${repair.id}`);
+      await load();
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось удалить ремонт');
+    }
+  };
 
   const remove = async () => {
     if (!unit) return;
@@ -164,7 +175,12 @@ export function EquipmentUnitDetailPage() {
       )}
 
       <div className="detail-blocks">
-        <RepairHistory repairs={repairs} />
+        <RepairHistory
+          repairs={repairs}
+          canEdit={isAdministrator}
+          onEdit={setEditingRepair}
+          onDelete={removeRepair}
+        />
         <EntityHistory
           entityType="EquipmentUnit"
           entityId={unit.id}
@@ -174,12 +190,17 @@ export function EquipmentUnitDetailPage() {
         />
       </div>
 
-      {showRepairModal && (
+      {(showRepairModal || editingRepair) && (
         <RepairModal
           unitId={unit.id}
-          onCancel={() => setShowRepairModal(false)}
+          repair={editingRepair ?? undefined}
+          onCancel={() => {
+            setShowRepairModal(false);
+            setEditingRepair(null);
+          }}
           onSaved={async () => {
             setShowRepairModal(false);
+            setEditingRepair(null);
             await load();
           }}
         />

@@ -56,6 +56,9 @@ public class SparePartWriteOffsController : ControllerBase
             w.Quantity,
             AccountLogin = w.Repair != null ? w.Repair.AccountLogin : w.Issue!.AccountLogin,
             CreatedUtc = w.Repair != null ? w.Repair.CreatedUtc : w.Issue!.CreatedUtc,
+            ModifiedUtc = w.Repair != null ? w.Repair.ModifiedUtc : w.Issue!.ModifiedUtc,
+            ModifiedByLogin = w.Repair != null ? w.Repair.ModifiedByLogin : w.Issue!.ModifiedByLogin,
+            w.IssueId,
             Recipient = w.Issue != null ? w.Issue.Recipient : null,
             w.RepairId,
             EquipmentUnitId = w.Repair != null ? (int?)w.Repair.EquipmentUnitId : null,
@@ -82,10 +85,13 @@ public class SparePartWriteOffsController : ControllerBase
             r.Quantity,
             r.AccountLogin,
             r.CreatedUtc,
+            r.ModifiedUtc,
+            r.ModifiedByLogin,
             r.Recipient,
             r.RepairId,
             r.EquipmentUnitId,
-            r.IsRepair ? $"{r.UnitType} {r.UnitName}, S/N {r.UnitSerial}" : null)).ToList();
+            r.IsRepair ? $"{r.UnitType} {r.UnitName}, S/N {r.UnitSerial}" : null,
+            r.IssueId)).ToList();
     }
 
     [Authorize(Policy = "Administrator")]

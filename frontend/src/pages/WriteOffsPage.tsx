@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { SparePartIssueModal } from '../components/SparePartIssueModal';
-import type { SparePart, SparePartWriteOff } from '../types';
-import { formatIsoDate } from '../utils/dates';
+import type { SparePart, SparePartIssue, SparePartWriteOff } from '../types';
+import { formatIsoDate, formatModified } from '../utils/dates';
 
 const PAGE_SIZE = 100;
 
@@ -22,6 +22,8 @@ export function WriteOffsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showIssueModal, setShowIssueModal] = useState(false);
+  // Изменение выдачи целиком (только администратор)
+  const [editingIssue, setEditingIssue] = useState<SparePartIssue | null>(null);
   // Правка строки списания (только администратор)
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editPartId, setEditPartId] = useState('');
@@ -59,6 +61,15 @@ export function WriteOffsPage() {
 
   const refreshParts = () =>
     apiClient.get<SparePart[]>('/api/spare-parts').then((res) => setSpareParts(res.data)).catch(() => {});
+
+  const openIssueEditor = async (issueId: number) => {
+    try {
+      const res = await apiClient.get<SparePartIssue>(`/api/spare-part-issues/${issueId}`);
+      setEditingIssue(res.data);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Не удалось загрузить выдачу');
+    }
+  };
 
   const startEdit = (w: SparePartWriteOff) => {
     setEditingId(w.id);
@@ -182,7 +193,10 @@ export function WriteOffsPage() {
                     w.recipient
                   )}
                 </td>
-                <td>{w.accountLogin}</td>
+                <td>
+                  {w.accountLogin}
+                  {w.modifiedUtc && <div className="muted">{formatModified(w.modifiedByLogin, w.modifiedUtc)}</div>}
+                </td>
                 {isAdministrator && (
                   <td>
                     {editingId === w.id ? (
@@ -194,6 +208,9 @@ export function WriteOffsPage() {
                       <>
                         <button onClick={() => startEdit(w)}>Изменить</button>
                         <button onClick={() => cancelWriteOff(w)}>Отменить списание</button>
+                        {w.kind === 'Issue' && w.issueId !== null && (
+                          <button onClick={() => openIssueEditor(w.issueId as number)}>Изменить выдачу</button>
+                        )}
                       </>
                     )}
                   </td>
@@ -226,6 +243,18 @@ export function WriteOffsPage() {
             setShowIssueModal(false);
             reload();
             // остатки изменились — обновим список частей (в фильтре и т.п.)
+            refreshParts();
+          }}
+        />
+      )}
+
+      {editingIssue && (
+        <SparePartIssueModal
+          issue={editingIssue}
+          onCancel={() => setEditingIssue(null)}
+          onSaved={() => {
+            setEditingIssue(null);
+            reload();
             refreshParts();
           }}
         />

@@ -24,8 +24,11 @@ export function SparePartRowsEditor(props: {
   spareParts: SparePart[];
   rows: PartRow[];
   onChange: (rows: PartRow[]) => void;
+  // При правке существующей записи: сколько по каждой части уже было списано ею ранее — эти части
+  // при пересчёте вернутся на склад, поэтому нехватка считается с их учётом
+  alreadyWrittenOff?: Map<number, number>;
 }) {
-  const { spareParts, rows, onChange } = props;
+  const { spareParts, rows, onChange, alreadyWrittenOff } = props;
 
   const addRow = () => {
     const key = rows.reduce((max, r) => Math.max(max, r.key), 0) + 1;
@@ -47,10 +50,11 @@ export function SparePartRowsEditor(props: {
     const result: { name: string; requested: number; inStock: number }[] = [];
     for (const [id, qty] of requested) {
       const part = spareParts.find((p) => p.id === id);
-      if (part && qty > part.quantity) result.push({ name: part.name, requested: qty, inStock: part.quantity });
+      const available = part ? part.quantity + (alreadyWrittenOff?.get(id) ?? 0) : 0;
+      if (part && qty > available) result.push({ name: part.name, requested: qty, inStock: available });
     }
     return result;
-  }, [rows, spareParts]);
+  }, [rows, spareParts, alreadyWrittenOff]);
 
   return (
     <>

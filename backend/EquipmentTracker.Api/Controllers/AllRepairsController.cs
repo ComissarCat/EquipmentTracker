@@ -75,6 +75,8 @@ public class AllRepairsController : ControllerBase
             r.Note,
             r.AccountLogin,
             r.CreatedUtc,
+            r.ModifiedUtc,
+            r.ModifiedByLogin,
             r.Operations.Select(o => new RepairOperationDto(o.RepairOperationId, o.RepairOperation.Name))
                 .OrderBy(o => o.Name).ToList(),
             r.WriteOffs.Select(w => new WriteOffPartDto(w.SparePartId, w.SparePart.Name, w.Quantity))

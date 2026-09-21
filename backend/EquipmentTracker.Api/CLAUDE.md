@@ -65,6 +65,11 @@ frontend/src/
   возвращается на склад; выдача без строк удаляется. Часть, по которой
   есть списания, удалить нельзя. В самих `Repair`/`SparePartIssue` истории редактирования нет —
   она есть у `SparePart` (там видно изменение остатка).
+  Administrator также может изменить/удалить ремонт (`PUT/DELETE /api/equipment-units/{id}/repairs/{repairId}`)
+  и выдачу (`GET/PUT/DELETE /api/spare-part-issues/{id}`): части заменяются целиком, остатки меняются
+  на разницу «было − стало» (логика — `SparePartWriteOffs.ReplaceAsync/ReturnAll`, общая для обоих);
+  удаление возвращает всё списанное. Автор и `CreatedUtc` не меняются, кто/когда правил —
+  `ModifiedUtc/ModifiedByLogin` у `Repair` и `SparePartIssue`.
 - **Уникальность**: `Account.Login`, `EquipmentType.Name`, `EquipmentName.Name` (глобально, не
   в пределах типа), `EquipmentUnit.SerialNumber` — везде проверяется и в контроллере (понятная
   ошибка), и как индекс в БД.

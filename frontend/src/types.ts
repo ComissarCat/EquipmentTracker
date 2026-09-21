@@ -74,6 +74,8 @@ export interface Repair {
   note: string | null;
   accountLogin: string;
   createdUtc: string;
+  modifiedUtc: string | null;
+  modifiedByLogin: string | null;
   operations: RepairOperation[];
   parts: RepairPart[];
 }
@@ -87,10 +89,13 @@ export interface SparePartWriteOff {
   quantity: number;
   accountLogin: string;
   createdUtc: string;
+  modifiedUtc: string | null;
+  modifiedByLogin: string | null;
   recipient: string | null;
   repairId: number | null;
   equipmentUnitId: number | null;
   equipmentUnitTitle: string | null;
+  issueId: number | null;
 }
 
 // Строка общего списка ремонтов (страница «Ремонты»)
@@ -103,6 +108,20 @@ export interface RepairListItem {
   note: string | null;
   accountLogin: string;
   createdUtc: string;
+  modifiedUtc: string | null;
+  modifiedByLogin: string | null;
   operations: RepairOperation[];
+  parts: RepairPart[];
+}
+
+// Выдача расходных частей (не в ремонт)
+export interface SparePartIssue {
+  id: number;
+  date: string; // yyyy-MM-dd
+  recipient: string;
+  accountLogin: string;
+  createdUtc: string;
+  modifiedUtc: string | null;
+  modifiedByLogin: string | null;
   parts: RepairPart[];
 }

@@ -9,6 +9,8 @@ public record RepairDto(
     string? Note,
     string AccountLogin,
     DateTime CreatedUtc,
+    DateTime? ModifiedUtc,
+    string? ModifiedByLogin,
     List<RepairOperationDto> Operations,
     List<WriteOffPartDto> Parts);
 
@@ -33,6 +35,8 @@ public record SparePartIssueDto(
     string Recipient,
     string AccountLogin,
     DateTime CreatedUtc,
+    DateTime? ModifiedUtc,
+    string? ModifiedByLogin,
     List<WriteOffPartDto> Parts);
 
 // Строка истории списаний. Kind: "Repair" | "Issue".
@@ -46,10 +50,13 @@ public record SparePartWriteOffDto(
     int Quantity,
     string AccountLogin,
     DateTime CreatedUtc,
+    DateTime? ModifiedUtc,
+    string? ModifiedByLogin,
     string? Recipient,
     int? RepairId,
     int? EquipmentUnitId,
-    string? EquipmentUnitTitle);
+    string? EquipmentUnitTitle,
+    int? IssueId);
 
 // Администратор: изменение строки списания. Quantity строго > 0 (для обнуления есть отмена).
 public record UpdateSparePartWriteOffRequest(int SparePartId, int Quantity);
@@ -64,5 +71,7 @@ public record RepairListItemDto(
     string? Note,
     string AccountLogin,
     DateTime CreatedUtc,
+    DateTime? ModifiedUtc,
+    string? ModifiedByLogin,
     List<RepairOperationDto> Operations,
     List<WriteOffPartDto> Parts);
