@@ -103,6 +103,9 @@ main { flex: 1; padding: 16px 20px; }
 .page { max-width: 1000px; }
 .page h1 { font-size: 20px; }
 .page section { margin-bottom: 28px; }
+.collapsible { margin-bottom: 16px; }
+.collapsible > summary { cursor: pointer; font-size: 18px; font-weight: 600; padding: 6px 0; margin-bottom: 8px; }
+.collapsible > summary .muted { font-weight: 400; font-size: 14px; }
 .inline-form { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
 .inline-form input, .inline-form select { padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
 

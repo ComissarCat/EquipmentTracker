@@ -99,8 +99,8 @@ export function CatalogsPage() {
       <h1>Справочники техники</h1>
       {error && <div className="error-banner" onClick={() => setError(null)}>{error}</div>}
 
-      <section>
-        <h2>Типы техники</h2>
+      <details className="collapsible">
+        <summary>Типы техники <span className="muted">({types.length})</span></summary>
         {isOperator && (
           <form className="inline-form" onSubmit={createType}>
             <input placeholder="Новый тип" value={newTypeName} onChange={(e) => setNewTypeName(e.target.value)} required />
@@ -145,10 +145,10 @@ export function CatalogsPage() {
           </tbody>
           </table>
         </div>
-      </section>
+      </details>
 
-      <section>
-        <h2>Наименования техники</h2>
+      <details className="collapsible">
+        <summary>Наименования техники <span className="muted">({names.length})</span></summary>
         {isOperator && (
           <form className="inline-form" onSubmit={createName}>
             <select value={newNameTypeId ?? ''} onChange={(e) => setNewNameTypeId(Number(e.target.value))} required>
@@ -213,7 +213,7 @@ export function CatalogsPage() {
           </tbody>
           </table>
         </div>
-      </section>
+      </details>
     </div>
   );
 }
