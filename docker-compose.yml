@@ -52,9 +52,45 @@ services:
     ports:
       - "${FRONTEND_PORT:-80}:80"
 
+  # Ежедневные зашифрованные копии БД: локально (том backup-data) + выгрузка на удалённое
+  # хранилище (Яндекс Диск по WebDAV). Все настройки — в .env (BACKUP_*), см. README.
+  backup:
+    build:
+      context: ./backup
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-equipment_tracker}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}
+      PGDATABASE: ${POSTGRES_DB:-equipment_tracker}
+      BACKUP_AGE_PUBLIC_KEY: ${BACKUP_AGE_PUBLIC_KEY:-}
+      BACKUP_WEBDAV_URL: ${BACKUP_WEBDAV_URL:-https://webdav.yandex.ru}
+      BACKUP_WEBDAV_USER: ${BACKUP_WEBDAV_USER:-}
+      BACKUP_WEBDAV_PASSWORD: ${BACKUP_WEBDAV_PASSWORD:-}
+      BACKUP_REMOTE_DIR: ${BACKUP_REMOTE_DIR:-}
+      BACKUP_HOUR: ${BACKUP_HOUR:-3}
+      BACKUP_TIMEZONE: ${BACKUP_TIMEZONE:-Europe/Moscow}
+      BACKUP_KEEP_LOCAL: ${BACKUP_KEEP_LOCAL:-14}
+      BACKUP_KEEP_REMOTE_DAYS: ${BACKUP_KEEP_REMOTE_DAYS:-90}
+      BACKUP_NOTIFY_TO: ${BACKUP_NOTIFY_TO:-}
+      BACKUP_SMTP_HOST: ${BACKUP_SMTP_HOST:-smtp.yandex.ru}
+      BACKUP_SMTP_PORT: ${BACKUP_SMTP_PORT:-465}
+      BACKUP_SMTP_SECURITY: ${BACKUP_SMTP_SECURITY:-ssl}
+      BACKUP_SMTP_USER: ${BACKUP_SMTP_USER:-}
+      BACKUP_SMTP_PASSWORD: ${BACKUP_SMTP_PASSWORD:-}
+      BACKUP_SMTP_FROM: ${BACKUP_SMTP_FROM:-}
+    volumes:
+      - backup-data:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
 networks:
   internal:
     driver: bridge
 
 volumes:
   db-data:
+  backup-data:

@@ -86,6 +86,15 @@ frontend/src/
 - Данные текущей БД **мигрированы** из той же старой системы одноразовым SQL-скриптом
   (buildings/cabinets/complects/devices → единая иерархия Locations + EquipmentUnits).
 
+## Резервное копирование
+
+Сервис `backup` в docker-compose (`/backup`: Dockerfile, backup.sh, entrypoint.sh): раз в сутки
+pg_dump → gzip → age (шифрование ПУБЛИЧНЫМ ключом из `BACKUP_AGE_PUBLIC_KEY`, приватный ключ
+хранится вне сервера) → том `backup-data` + выгрузка на Яндекс Диск по WebDAV (rclone, конфиг
+целиком из env: `BACKUP_WEBDAV_*`, папка — `BACKUP_REMOTE_DIR`). Настройка/восстановление — в
+README. Если BACKUP_* не заданы вовсе — контейнер простаивает (штатно), при частичной настройке падает с понятной ошибкой. При сбое запланированной копии шлётся письмо (`notify.sh`, SMTP из `BACKUP_SMTP_*`,
+получатели `BACKUP_NOTIFY_TO`), после восстановления — письмо «снова работает». Скрипты `*.sh` должны быть с LF (`.gitattributes`), иначе в контейнере ломается shebang.
+
 ## Как это разворачивается
 
 ```bash
