@@ -107,7 +107,6 @@ export function SparePartsCatalog({ onError }: { onError: (message: string) => v
                   {settingId === item.id ? (
                     <input
                       type="number"
-                      min={0}
                       step={1}
                       value={setValue}
                       onChange={(e) => setSetValue(e.target.value)}

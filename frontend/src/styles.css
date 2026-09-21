@@ -42,6 +42,8 @@ main { flex: 1; padding: 16px 20px; }
 .login-form button { margin-top: 8px; padding: 10px; background: #2563eb; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
 
 .error-text { color: #b91c1c; font-size: 13px; }
+.warning-text { color: #92400e; background: #fef3c7; border-radius: 4px; padding: 6px 10px; font-size: 13px; margin-top: 8px; }
+.warning-text ul { margin: 4px 0 0; padding-left: 18px; }
 .error-banner { background: #fee2e2; color: #991b1b; padding: 8px 12px; border-radius: 4px; margin-bottom: 10px; cursor: pointer; }
 
 .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
@@ -97,6 +99,10 @@ main { flex: 1; padding: 16px 20px; }
 }
 .modal fieldset { border: 1px solid #e5e7eb; border-radius: 4px; padding: 8px; }
 .checkbox-label { flex-direction: row !important; align-items: center; gap: 6px !important; }
+.modal-wide { width: 560px; }
+.check-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow: auto; }
+.part-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.part-row select { flex: 1; min-width: 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .modal-actions button[type="submit"] { background: #2563eb; color: #fff; border: none; }
 
@@ -129,6 +135,7 @@ main { flex: 1; padding: 16px 20px; }
 .detail-row:last-child { border-bottom: none; }
 .detail-label { color: #6b7280; min-width: 190px; flex-shrink: 0; }
 .detail-actions { display: flex; gap: 8px; margin-top: 12px; }
+.detail-blocks { margin-top: 20px; }
 .detail-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151; }
 .detail-form input, .detail-form select, .detail-form textarea {
   padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;

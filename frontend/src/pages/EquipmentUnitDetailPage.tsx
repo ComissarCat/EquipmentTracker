@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { apiClient } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
-import type { EquipmentName, EquipmentUnit, LocationItem } from '../types';
+import type { EquipmentName, EquipmentUnit, LocationItem, Repair } from '../types';
+import { EntityHistory } from '../components/EntityHistory';
+import { RepairHistory } from '../components/RepairHistory';
+import { RepairModal } from '../components/RepairModal';
 
 // Карточка одной единицы техники: полные данные, полный путь локации до корня,
 // и (для Оператора/Администратора) возможность редактирования на месте.
@@ -19,19 +22,26 @@ export function EquipmentUnitDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [repairs, setRepairs] = useState<Repair[]>([]);
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  // Растёт при каждом изменении данных карточки — обновляет блок истории изменений
+  const [historyVersion, setHistoryVersion] = useState(0);
 
   const load = async () => {
     setLoading(true);
     setNotFound(false);
     try {
-      const [unitRes, locRes, nameRes] = await Promise.all([
+      const [unitRes, locRes, nameRes, repairsRes] = await Promise.all([
         apiClient.get<EquipmentUnit>(`/api/equipment-units/${unitId}`),
         apiClient.get<LocationItem[]>('/api/locations'),
-        apiClient.get<EquipmentName[]>('/api/equipment-names')
+        apiClient.get<EquipmentName[]>('/api/equipment-names'),
+        apiClient.get<Repair[]>(`/api/equipment-units/${unitId}/repairs`)
       ]);
       setUnit(unitRes.data);
       setLocations(locRes.data);
       setEquipmentNames(nameRes.data);
+      setRepairs(repairsRes.data);
+      setHistoryVersion((v) => v + 1);
     } catch (err: any) {
       if (err?.response?.status === 404) setNotFound(true);
       else setError('Не удалось загрузить данные единицы техники');
@@ -131,6 +141,7 @@ export function EquipmentUnitDetailPage() {
 
           {isOperator && (
             <div className="detail-actions">
+              <button onClick={() => setShowRepairModal(true)}>Зафиксировать ремонт</button>
               <button onClick={() => setEditing(true)}>Редактировать</button>
               <button onClick={remove}>Удалить</button>
             </div>
@@ -147,6 +158,30 @@ export function EquipmentUnitDetailPage() {
           onSave={async (data) => {
             await apiClient.put(`/api/equipment-units/${unit.id}`, data);
             setEditing(false);
+            await load();
+          }}
+        />
+      )}
+
+      <div className="detail-blocks">
+        <RepairHistory repairs={repairs} />
+        {isOperator && (
+          <EntityHistory
+            entityType="EquipmentUnit"
+            entityId={unit.id}
+            locations={locations}
+            equipmentNames={equipmentNames}
+            refreshKey={historyVersion}
+          />
+        )}
+      </div>
+
+      {showRepairModal && (
+        <RepairModal
+          unitId={unit.id}
+          onCancel={() => setShowRepairModal(false)}
+          onSaved={async () => {
+            setShowRepairModal(false);
             await load();
           }}
         />

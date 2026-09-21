@@ -61,3 +61,19 @@ export interface SparePart {
   name: string;
   quantity: number;
 }
+
+export interface RepairPart {
+  sparePartId: number;
+  name: string;
+  quantity: number;
+}
+
+export interface Repair {
+  id: number;
+  date: string; // yyyy-MM-dd
+  note: string | null;
+  accountLogin: string;
+  createdUtc: string;
+  operations: RepairOperation[];
+  parts: RepairPart[];
+}

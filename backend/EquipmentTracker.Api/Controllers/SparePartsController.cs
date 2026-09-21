@@ -11,7 +11,7 @@ namespace EquipmentTracker.Api.Controllers;
 // Справочник расходных частей с остатками. Правила изменения количества:
 //  - Operator: может только увеличить остаток (add-stock, Amount > 0) либо указать
 //    начальное количество при создании позиции;
-//  - Administrator: может напрямую установить любое неотрицательное количество (quantity).
+//  - Administrator: может напрямую установить любое количество, в том числе отрицательное (quantity).
 // Каждое изменение фиксируется в истории редактирования автоматически (AppDbContext).
 [ApiController]
 [Route("api/spare-parts")]
@@ -95,9 +95,6 @@ public class SparePartsController : ControllerBase
     [HttpPut("{id:int}/quantity")]
     public async Task<ActionResult<SparePartDto>> SetQuantity(int id, SetSparePartQuantityRequest request)
     {
-        if (request.Quantity < 0)
-            return BadRequest(new { message = "Количество не может быть отрицательным" });
-
         var item = await _db.SpareParts.FindAsync(id);
         if (item is null) return NotFound();
 
@@ -114,6 +111,9 @@ public class SparePartsController : ControllerBase
     {
         var item = await _db.SpareParts.FindAsync(id);
         if (item is null) return NotFound();
+
+        if (await _db.Set<RepairPartItem>().AnyAsync(i => i.SparePartId == id))
+            return BadRequest(new { message = "Нельзя удалить расходную часть, которая использована в зафиксированных ремонтах" });
 
         _db.SpareParts.Remove(item);
         await _db.SaveChangesAsync();

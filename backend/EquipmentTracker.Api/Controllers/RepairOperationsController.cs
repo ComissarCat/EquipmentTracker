@@ -72,6 +72,9 @@ public class RepairOperationsController : ControllerBase
         var item = await _db.RepairOperations.FindAsync(id);
         if (item is null) return NotFound();
 
+        if (await _db.Set<RepairOperationItem>().AnyAsync(i => i.RepairOperationId == id))
+            return BadRequest(new { message = "Нельзя удалить операцию, которая использована в зафиксированных ремонтах" });
+
         _db.RepairOperations.Remove(item);
         await _db.SaveChangesAsync();
         return NoContent();

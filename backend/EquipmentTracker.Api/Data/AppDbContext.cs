@@ -31,6 +31,7 @@ public class AppDbContext : DbContext
     public DbSet<EquipmentUnit> EquipmentUnits => Set<EquipmentUnit>();
     public DbSet<RepairOperation> RepairOperations => Set<RepairOperation>();
     public DbSet<SparePart> SpareParts => Set<SparePart>();
+    public DbSet<Repair> Repairs => Set<Repair>();
     public DbSet<EditHistoryEntry> HistoryEntries => Set<EditHistoryEntry>();
 
     // Типы сущностей, для которых ведётся история редактирования
@@ -114,6 +115,35 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<SparePart>()
             .HasIndex(p => p.Name)
             .IsUnique();
+
+        // Ремонты: удаление единицы техники удаляет её ремонты; справочные записи, использованные
+        // в ремонтах, удалить нельзя (Restrict + проверка в контроллерах).
+        modelBuilder.Entity<Repair>()
+            .HasOne(r => r.EquipmentUnit)
+            .WithMany()
+            .HasForeignKey(r => r.EquipmentUnitId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Repair>()
+            .HasIndex(r => new { r.EquipmentUnitId, r.Date });
+
+        modelBuilder.Entity<RepairOperationItem>()
+            .HasKey(i => new { i.RepairId, i.RepairOperationId });
+        modelBuilder.Entity<RepairOperationItem>()
+            .HasOne(i => i.Repair).WithMany(r => r.Operations)
+            .HasForeignKey(i => i.RepairId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<RepairOperationItem>()
+            .HasOne(i => i.RepairOperation).WithMany()
+            .HasForeignKey(i => i.RepairOperationId).OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<RepairPartItem>()
+            .HasKey(i => new { i.RepairId, i.SparePartId });
+        modelBuilder.Entity<RepairPartItem>()
+            .HasOne(i => i.Repair).WithMany(r => r.Parts)
+            .HasForeignKey(i => i.RepairId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<RepairPartItem>()
+            .HasOne(i => i.SparePart).WithMany()
+            .HasForeignKey(i => i.SparePartId).OnDelete(DeleteBehavior.Restrict);
     }
 
     public override int SaveChanges()
