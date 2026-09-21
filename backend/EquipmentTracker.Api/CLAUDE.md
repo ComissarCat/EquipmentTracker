@@ -72,10 +72,10 @@ frontend/src/
 cp .env.example .env      # заполнить пароли/секреты
 docker compose up --build -d
 ```
-Backend слушает `:8080` (переменная `BACKEND_PORT`), frontend (nginx) — `:80`
-(`FRONTEND_PORT`). `FRONTEND_API_BASE_URL` (адрес API, видимый браузеру) и `FRONTEND_ORIGIN`
-(для CORS на бэкенде) должны соответствовать реальному адресу сервера, не `localhost`, если
-разворачивается не локально.
+Наружу публикуется только frontend (nginx) на `:80` (`FRONTEND_PORT`). Backend (`:8080`)
+доступен лишь внутри docker-сети: nginx проксирует `/api/` на `backend:8080`, браузер работает
+с одним origin, поэтому адрес сервера нигде прописывать не нужно, а CORS в проде не задействован.
+В dev (`npm run dev`) то же делает прокси Vite на `localhost:8080`.
 
 ## Тестирование перед коммитом
 

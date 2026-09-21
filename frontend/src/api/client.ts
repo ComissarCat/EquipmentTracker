@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Базовый URL API берётся из переменной окружения сборки (см. Dockerfile фронтенда) —
-// это позволяет фронтенду в контейнере ходить к бэкенду по имени сервиса docker-compose
-// на этапе разработки и по публичному адресу в проде.
-export const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080';
+// По умолчанию запросы идут на тот же origin: в проде /api/ проксирует nginx фронтенда,
+// в dev — прокси Vite (см. vite.config.ts). VITE_API_BASE_URL нужен только если API
+// живёт на другом адресе.
+export const API_BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL ?? '';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL
