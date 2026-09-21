@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate, Route, Routes, Link, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { LoginPage } from './pages/LoginPage';
 import { MainPage } from './pages/MainPage';
@@ -14,7 +14,8 @@ import { roleLabel } from './utils/roles';
 
 function RequireRole({ role, children }: { role: 'operator' | 'administrator'; children: React.ReactNode }) {
   const { isOperator, isAdministrator, user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   const allowed = role === 'operator' ? isOperator : isAdministrator;
   if (!allowed) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -23,8 +24,9 @@ function RequireRole({ role, children }: { role: 'operator' | 'administrator'; c
 // Для страниц, доступных любому авторизованному пользователю независимо от роли
 // (в отличие от RequireRole, здесь не важно, Оператор это или Администратор — важен сам факт входа)
 function RequireAuth({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   return <>{children}</>;
 }
 

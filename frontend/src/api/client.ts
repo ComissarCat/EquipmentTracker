@@ -27,7 +27,8 @@ apiClient.interceptors.response.use(
     if (error?.response?.status === 401) {
       localStorage.removeItem('auth');
       if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+        const from = window.location.pathname + window.location.search;
+        window.location.href = '/login?from=' + encodeURIComponent(from);
       }
     }
     return Promise.reject(error);
