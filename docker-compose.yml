@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-equipment_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-equipment_tracker}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    # База данных изолирована: порт наружу не пробрасывается,
+    # доступ к ней есть только у сервиса backend через внутреннюю docker-сеть.
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-equipment_tracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend/EquipmentTracker.Api
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-equipment_tracker};Username=${POSTGRES_USER:-equipment_tracker};Password=${POSTGRES_PASSWORD:?Задайте POSTGRES_PASSWORD в .env}"
+      Jwt__Secret: ${JWT_SECRET:?Задайте JWT_SECRET в .env (минимум 32 случайных символа)}
+      Jwt__Issuer: EquipmentTracker
+      Jwt__Audience: EquipmentTracker
+      DefaultAdmin__Login: ${DEFAULT_ADMIN_LOGIN:-admin}
+      DefaultAdmin__Password: ${DEFAULT_ADMIN_PASSWORD:?Задайте DEFAULT_ADMIN_PASSWORD в .env}
+      DefaultAdmin__FullName: ${DEFAULT_ADMIN_FULLNAME:-Администратор}
+      Export__OrganizationName: ${EXPORT_ORGANIZATION_NAME:-ЧЕТВЁРТЫЙ КАССАЦИОННЫЙ СУД ОБЩЕЙ ЮРИСДИКЦИИ}
+      Export__OkpoCode: ${EXPORT_OKPO_CODE:-32717350}
+      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN:-http://localhost:8080}
+      ASPNETCORE_ENVIRONMENT: Production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    ports:
+      # Порт бэкенда пробрасывается наружу для доступа фронтенда из браузера пользователя
+      # (браузер обращается напрямую к API, а не через контейнер фронтенда).
+      # При необходимости закройте его и поставьте перед backend/frontend общий reverse-proxy.
+      - "${BACKEND_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${FRONTEND_API_BASE_URL:-http://localhost:8080}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - internal
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  db-data:
