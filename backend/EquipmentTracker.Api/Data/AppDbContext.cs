@@ -29,6 +29,8 @@ public class AppDbContext : DbContext
     public DbSet<EquipmentType> EquipmentTypes => Set<EquipmentType>();
     public DbSet<EquipmentName> EquipmentNames => Set<EquipmentName>();
     public DbSet<EquipmentUnit> EquipmentUnits => Set<EquipmentUnit>();
+    public DbSet<RepairOperation> RepairOperations => Set<RepairOperation>();
+    public DbSet<SparePart> SpareParts => Set<SparePart>();
     public DbSet<EditHistoryEntry> HistoryEntries => Set<EditHistoryEntry>();
 
     // Типы сущностей, для которых ведётся история редактирования
@@ -37,7 +39,9 @@ public class AppDbContext : DbContext
         typeof(Location),
         typeof(EquipmentType),
         typeof(EquipmentName),
-        typeof(EquipmentUnit)
+        typeof(EquipmentUnit),
+        typeof(RepairOperation),
+        typeof(SparePart)
     };
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -101,6 +105,14 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<EquipmentName>()
             .HasIndex(n => n.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<RepairOperation>()
+            .HasIndex(o => o.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<SparePart>()
+            .HasIndex(p => p.Name)
             .IsUnique();
     }
 

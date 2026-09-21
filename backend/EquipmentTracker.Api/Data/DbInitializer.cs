@@ -1,20 +1,18 @@
 using EquipmentTracker.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace EquipmentTracker.Api.Data;
 
-// Применяет миграции и создаёт стандартные роли и учётную запись администратора при первом запуске.
+// Применяет миграции (см. BaselineLegacyDatabaseAsync для БД, созданных без них) и создаёт стандартные роли и учётную запись администратора при первом запуске.
 public static class DbInitializer
 {
     public static async Task InitializeAsync(AppDbContext db, IConfiguration config, ILogger logger)
     {
-        // Примечание: в этом шаблоне схема БД создаётся через EnsureCreatedAsync
-        // (готовых файлов миграций EF Core в проекте нет — их нужно сгенерировать
-        // один раз командой `dotnet ef migrations add InitialCreate`, см. README).
-        // Если миграции присутствуют в проекте — замените строку ниже на
-        // `await db.Database.MigrateAsync();`, чтобы использовать полноценные миграции.
-        await db.Database.EnsureCreatedAsync();
+        await BaselineLegacyDatabaseAsync(db, logger);
+        await db.Database.MigrateAsync();
 
         var operatorRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == RoleNames.Operator);
         if (operatorRole is null)
@@ -55,5 +53,32 @@ public static class DbInitializer
                 "Создана стандартная учётная запись администратора. Логин: {Login}. " +
                 "ОБЯЗАТЕЛЬНО смените пароль после первого входа!", adminLogin);
         }
+    }
+
+    // БД, созданная раньше через EnsureCreated, уже содержит таблицы первой миграции, но не имеет
+    // таблицы __EFMigrationsHistory — MigrateAsync попытался бы создать всё заново и упал.
+    // Помечаем первую миграцию (InitialCreate) применённой, данные не затрагиваются; остальные
+    // миграции применит MigrateAsync. На новой пустой БД и на БД, уже переведённой на миграции,
+    // метод ничего не делает.
+    private static async Task BaselineLegacyDatabaseAsync(AppDbContext db, ILogger logger)
+    {
+        if ((await db.Database.GetAppliedMigrationsAsync()).Any()) return;
+
+        var legacyExists = await db.Database
+            .SqlQueryRaw<bool>("""
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables
+                    WHERE table_schema = current_schema() AND table_name = 'Accounts') AS "Value"
+                """)
+            .SingleAsync();
+        if (!legacyExists) return;
+
+        var baselineId = db.Database.GetMigrations().First();
+        var history = db.GetService<IHistoryRepository>();
+        await db.Database.ExecuteSqlRawAsync(history.GetCreateIfNotExistsScript());
+        var version = typeof(DbContext).Assembly.GetName().Version!.ToString(3);
+        await db.Database.ExecuteSqlRawAsync(history.GetInsertScript(new HistoryRow(baselineId, version)));
+
+        logger.LogWarning("Обнаружена БД, созданная без миграций: миграция {Migration} помечена применённой.", baselineId);
     }
 }

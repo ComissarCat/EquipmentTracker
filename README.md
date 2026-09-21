@@ -52,19 +52,19 @@
 
 ## О миграциях базы данных
 
-Схема БД в этом шаблоне создаётся через `EnsureCreatedAsync()` при старте контейнера backend —
-это позволяет запустить проект без предварительной генерации файлов миграций EF Core. Для
-дальнейшего сопровождения проекта (изменения схемы без потери данных) рекомендуется перейти
-на полноценные миграции:
+Схема БД управляется миграциями EF Core (`backend/EquipmentTracker.Api/Migrations`); при старте
+backend вызывает `MigrateAsync()` в `Data/DbInitializer.cs`. Если в БД уже есть таблицы, созданные
+раньше через `EnsureCreatedAsync()` (нет таблицы `__EFMigrationsHistory`), первая миграция
+`InitialCreate` автоматически помечается применённой без изменения данных, а остальные
+применяются как обычно.
+
+Изменили модель — создайте миграцию и закоммитьте её вместе с кодом:
 
 ```bash
 cd backend/EquipmentTracker.Api
 dotnet tool install --global dotnet-ef   # если ещё не установлен
-dotnet ef migrations add InitialCreate
+dotnet ef migrations add ИмяМиграции
 ```
-
-После этого замените в `Data/DbInitializer.cs` вызов `EnsureCreatedAsync()` на
-`MigrateAsync()`.
 
 ## Главная страница (дерево локаций/техники)
 

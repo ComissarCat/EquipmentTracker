@@ -46,6 +46,10 @@ frontend/src/
   произвольная глубина вложенности).
 - **`EquipmentUnit.LocationId` обязателен** (не nullable) — у единицы техники всегда есть
   текущая локация. Это осознанно изменили в процессе разработки, не делать nullable обратно.
+- **Справочники ремонта**: `RepairOperation` (название) и `SparePart` (название + `Quantity`).
+  Права на количество: Operator — только пополнение (`POST /api/spare-parts/{id}/add-stock`,
+  Amount > 0) и начальное количество при создании; Administrator — прямая установка
+  (`PUT /{id}/quantity`) и удаление. Все изменения попадают в историю. Таблицы создаёт миграция `AddRepairCatalogs`.
 - **Уникальность**: `Account.Login`, `EquipmentType.Name`, `EquipmentName.Name` (глобально, не
   в пределах типа), `EquipmentUnit.SerialNumber` — везде проверяется и в контроллере (понятная
   ошибка), и как индекс в БД.
@@ -55,10 +59,11 @@ frontend/src/
   запись, нельзя оставить систему без единого администратора (см. `AccountsController`).
 - **История изменений** пишется автоматически на уровне `AppDbContext`, не в контроллерах —
   при доработке новых полей это не требует ручных правок в каждом эндпоинте.
-- **⚠️ Схема БД создаётся через `EnsureCreatedAsync()`, а не EF-миграциями** — временное
-  решение. Если нужно менять схему без потери данных, сначала сгенерировать нормальную
-  миграцию (`dotnet ef migrations add ...`) и заменить `EnsureCreatedAsync` на
-  `MigrateAsync` в `DbInitializer.cs`.
+- **Схема БД — EF-миграции** (`Migrations/`), применяются через `MigrateAsync()` в
+  `DbInitializer`. БД, созданная ранее через `EnsureCreated`, автоматически «базлайнится»:
+  `InitialCreate` помечается применённой без изменения данных (`BaselineLegacyDatabaseAsync`).
+  Менять модель — только с новой миграцией (`dotnet ef migrations add ...`); для `dotnet ef`
+  есть `DesignTimeDbContextFactory` (подключение к БД не требуется).
 - **Инвентарные карточки и обычный список Excel** — почти дословный порт из старого
   Winforms-проекта (github.com/ComissarCat/Hardware, `ExportManager.cs`) под EPPlus, включая
   специфичные для организации константы (ОКУД, ОКПО, название учреждения) — вынесены в

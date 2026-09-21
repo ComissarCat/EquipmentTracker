@@ -50,3 +50,14 @@ export interface AuthUser {
   fullName: string;
   roles: string[];
 }
+
+export interface RepairOperation {
+  id: number;
+  name: string;
+}
+
+export interface SparePart {
+  id: number;
+  name: string;
+  quantity: number;
+}

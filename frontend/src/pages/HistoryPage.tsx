@@ -6,7 +6,9 @@ const ENTITY_TYPE_LABELS: Record<string, string> = {
   Location: 'Локация',
   EquipmentType: 'Тип техники',
   EquipmentName: 'Наименование техники',
-  EquipmentUnit: 'Единица техники'
+  EquipmentUnit: 'Единица техники',
+  RepairOperation: 'Ремонтная операция',
+  SparePart: 'Расходная часть'
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -24,7 +26,8 @@ const FIELD_LABELS: Record<string, string> = {
   SerialNumber: 'Серийный номер',
   InventoryNumber: 'Инвентарный номер',
   Note: 'Примечание',
-  LocationId: 'Локация'
+  LocationId: 'Локация',
+  Quantity: 'Количество'
 };
 
 // Поля-идентификаторы, для которых стоит попытаться подставить человекочитаемое название вместо ID

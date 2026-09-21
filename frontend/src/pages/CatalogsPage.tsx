@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import type { EquipmentName, EquipmentType } from '../types';
+import { RepairOperationsCatalog } from '../components/RepairOperationsCatalog';
+import { SparePartsCatalog } from '../components/SparePartsCatalog';
 
 // Справочники "Тип техники" и "Наименование техники" — CRUD для роли Оператор/Администратор
 export function CatalogsPage() {
@@ -214,6 +216,9 @@ export function CatalogsPage() {
           </table>
         </div>
       </details>
+
+      <RepairOperationsCatalog onError={setError} />
+      <SparePartsCatalog onError={setError} />
     </div>
   );
 }
