@@ -23,6 +23,11 @@ export function ExportTree(props: ExportTreeProps) {
     });
   };
 
+  // Поиск по серийному/инвентарному номеру, наименованию и типу техники
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const query = searchQuery.trim().toLowerCase();
+  const isSearching = query.length > 0;
+
   const childrenMap = React.useMemo(() => {
     const map = new Map<number | null, LocationItem[]>();
     for (const l of locations) {
@@ -33,15 +38,39 @@ export function ExportTree(props: ExportTreeProps) {
     return map;
   }, [locations]);
 
+  const visibleUnits = React.useMemo(() => {
+    if (!isSearching) return units;
+    return units.filter((u) => {
+      const haystack = `${u.serialNumber} ${u.inventoryNumber ?? ''} ${u.equipmentNameName} ${u.equipmentTypeName}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [units, isSearching, query]);
+
   const unitsByLocation = React.useMemo(() => {
     const map = new Map<number, EquipmentUnit[]>();
-    for (const u of units) {
+    for (const u of visibleUnits) {
       const arr = map.get(u.locationId) ?? [];
       arr.push(u);
       map.set(u.locationId, arr);
     }
     return map;
-  }, [units]);
+  }, [visibleUnits]);
+
+  // При активном поиске показываем только локации, ведущие к найденным единицам техники (их предков)
+  const visibleLocationIds = React.useMemo(() => {
+    if (!isSearching) return null;
+    const locById = new Map(locations.map((l) => [l.id, l]));
+    const ids = new Set<number>();
+    for (const u of visibleUnits) {
+      let cur: number | null = u.locationId;
+      while (cur !== null && !ids.has(cur)) {
+        ids.add(cur);
+        const loc = locById.get(cur);
+        cur = loc ? loc.parentLocationId : null;
+      }
+    }
+    return ids;
+  }, [isSearching, visibleUnits, locations]);
 
   // Все id единиц техники, вложенных в данную локацию (рекурсивно, включая её саму)
   const descendantUnitIds = React.useMemo(() => {
@@ -115,9 +144,15 @@ export function ExportTree(props: ExportTreeProps) {
     </label>
   );
 
+  const childrenOf = (parentId: number | null) => {
+    const kids = childrenMap.get(parentId) ?? [];
+    return isSearching ? kids.filter((l) => visibleLocationIds!.has(l.id)) : kids;
+  };
+
   const renderLocation = (location: LocationItem, depth: number): React.ReactNode => {
-    const isExpanded = expanded.has(location.id);
-    const kids = childrenMap.get(location.id) ?? [];
+    // Во время поиска все ветки, ведущие к совпадениям, раскрыты принудительно
+    const isExpanded = isSearching ? true : expanded.has(location.id);
+    const kids = childrenOf(location.id);
     const locUnits = unitsByLocation.get(location.id) ?? [];
     const hasChildren = kids.length > 0 || locUnits.length > 0;
 
@@ -146,12 +181,29 @@ export function ExportTree(props: ExportTreeProps) {
     );
   };
 
-  const rootLocations = childrenMap.get(null) ?? [];
+  const rootLocations = childrenOf(null);
+  const nothingFound = isSearching && rootLocations.length === 0;
 
   return (
-    <div className="tree-scroll">
-      {rootLocations.map((l) => renderLocation(l, 0))}
-      {rootLocations.length === 0 && <div className="tree-empty">Список пуст</div>}
-    </div>
+    <>
+      <div className="tree-search">
+        <input
+          type="text"
+          placeholder="Поиск: серийный/инв. номер, наименование, тип..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {isSearching && (
+          <button type="button" className="tree-search-clear" onClick={() => setSearchQuery('')} title="Очистить поиск">
+            ✕
+          </button>
+        )}
+      </div>
+      <div className="tree-scroll">
+        {rootLocations.map((l) => renderLocation(l, 0))}
+        {rootLocations.length === 0 && !nothingFound && <div className="tree-empty">Список пуст</div>}
+        {nothingFound && <div className="tree-empty">По запросу «{searchQuery}» ничего не найдено</div>}
+      </div>
+    </>
   );
 }
