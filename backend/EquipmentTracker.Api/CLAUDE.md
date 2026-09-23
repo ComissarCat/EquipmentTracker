@@ -79,6 +79,13 @@ frontend/src/
   локации целиком); отмена — `POST /api/inventories/active/unconfirm` (Operator+, только идущая). Индикация во фронтенде — `useActiveInventory`, `TreeExplorer.confirmedUnitIds`.
   Выгрузка неподтверждённой техники — `GET /api/export/inventories/{id}/unresolved` (общий
   `BuildListWorkbook` с экспортом списка техники).
+- **Сканер QR** (страница `/scan`, `ScanPage.tsx`, разбор — `utils/qrContent.ts`, распознавание — jsQR):
+  понимает QR-ссылки на карточку (генерация ссылок убрана, но напечатанные ранее коды поддерживаются; хост не проверяется), QR «данные» этого приложения (`S/N: …`) и старого
+  проекта Hardware (`С/н: …`, QRCoder, UTF-8), а также серийный номер одной строкой (ручной ввод, USB-сканер).
+  Поиск — `GET /api/equipment-units/by-serial?serial=` (точное совпадение, затем без учёта регистра).
+  Основной способ на телефоне — фото (`<input capture>`, работает и по HTTP); живой видеопоток
+  камеры браузер даёт только по HTTPS (см. «HTTPS»), кнопка появляется сама (`window.isSecureContext`).
+  `QrPrintView` генерирует только QR с данными. Если меняете их формат — строка с серийным номером должна остаться распознаваемой.
 - **Уникальность**: `Account.Login`, `EquipmentType.Name`, `EquipmentName.Name` (глобально, не
   в пределах типа), `EquipmentUnit.SerialNumber` — везде проверяется и в контроллере (понятная
   ошибка), и как индекс в БД.
@@ -121,13 +128,25 @@ pg_dump → gzip → age (шифрование ПУБЛИЧНЫМ ключом �
 README. Если BACKUP_* не заданы вовсе — контейнер простаивает (штатно), при частичной настройке падает с понятной ошибкой. При сбое запланированной копии шлётся письмо (`notify.sh`, SMTP из `BACKUP_SMTP_*`,
 получатели `BACKUP_NOTIFY_TO`), после восстановления — письмо «снова работает». Скрипты `*.sh` должны быть с LF (`.gitattributes`), иначе в контейнере ломается shebang.
 
+## HTTPS
+
+Сертификат Let's Encrypt на IP (`TLS_IP`; профиль shortlived, ~6 дней — для IP других не бывает).
+Сервис `certbot` (`/certbot`: Dockerfile на `certbot/certbot` ≥ 5.4, entrypoint.sh): webroot в том
+`certbot-www`, сертификаты — в томе `letsencrypt`, проверка раз в 12 ч (`--keep-until-expiring`, certbot сам
+продлевает при остатке < ½ срока), при сбое — письмо через `backup/notify.sh` (подключён как
+`additional_contexts`). nginx фронтенда (`frontend/nginx/`: `app.conf` — общие location, `http.conf`,
+`https.conf`) собирает конфиг скриптом `40-tls.sh` из `/docker-entrypoint.d`: без сертификата — HTTP,
+с сертификатом — HTTPS + редирект с :80 (путь сохраняется — важно для напечатанных QR-ссылок); фоновый
+цикл раз в 5 мин замечает новый сертификат и делает `nginx -s reload`; битый сертификат при старте —
+откат на HTTP. HSTS намеренно не включён. Пустой `TLS_IP` — всё как раньше, certbot простаивает.
+
 ## Как это разворачивается
 
 ```bash
 cp .env.example .env      # заполнить пароли/секреты
 docker compose up --build -d
 ```
-Наружу публикуется только frontend (nginx) на `:80` (`FRONTEND_PORT`). Backend (`:8080`)
+Наружу публикуется только frontend (nginx) на `:80` (`FRONTEND_PORT`) и `:443` (`FRONTEND_HTTPS_PORT`, см. «HTTPS»). Backend (`:8080`)
 доступен лишь внутри docker-сети: nginx проксирует `/api/` на `backend:8080`, браузер работает
 с одним origin, поэтому адрес сервера нигде прописывать не нужно, а CORS в проде не задействован.
 В dev (`npm run dev`) то же делает прокси Vite на `localhost:8080`.

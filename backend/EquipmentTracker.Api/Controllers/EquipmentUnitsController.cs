@@ -42,6 +42,32 @@ public class EquipmentUnitsController : ControllerBase
         return ToDto(unit);
     }
 
+    // Поиск единицы техники по серийному номеру (страница «Сканер»: номер берётся из QR-кода или
+    // вводится вручную). Сначала точное совпадение, затем — без учёта регистра и пробелов по краям,
+    // если такое совпадение ровно одно (номера уникальны только с учётом регистра).
+    [HttpGet("by-serial")]
+    public async Task<ActionResult<EquipmentUnitDto>> GetBySerial([FromQuery] string? serial)
+    {
+        var value = serial?.Trim();
+        if (string.IsNullOrEmpty(value))
+            return BadRequest(new { message = "Не указан серийный номер" });
+
+        var query = _db.EquipmentUnits.AsNoTracking()
+            .Include(u => u.EquipmentName).ThenInclude(n => n.EquipmentType);
+
+        var unit = await query.FirstOrDefaultAsync(u => u.SerialNumber == value);
+        if (unit is not null) return ToDto(unit);
+
+        var lower = value.ToLower();
+        var candidates = await query.Where(u => u.SerialNumber.Trim().ToLower() == lower).Take(2).ToListAsync();
+        return candidates.Count switch
+        {
+            1 => ToDto(candidates[0]),
+            0 => NotFound(new { message = $"Техника с серийным номером «{value}» не найдена" }),
+            _ => NotFound(new { message = $"Найдено несколько единиц техники с номером «{value}», различающихся регистром — уточните номер" })
+        };
+    }
+
     [Authorize(Policy = "Operator")]
     [HttpPost]
     public async Task<ActionResult<EquipmentUnitDto>> Create(CreateEquipmentUnitRequest request)

@@ -12,6 +12,7 @@ import { ExportPage } from './pages/ExportPage';
 import { RepairsPage } from './pages/RepairsPage';
 import { InventoriesPage } from './pages/InventoriesPage';
 import { InventoryDetailPage } from './pages/InventoryDetailPage';
+import { ScanPage } from './pages/ScanPage';
 import { roleLabel } from './utils/roles';
 
 function RequireRole({ role, children }: { role: 'operator' | 'administrator'; children: React.ReactNode }) {
@@ -45,6 +46,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         {user && (
         <nav>
           <Link to="/">Главная</Link>
+          <Link to="/scan">Сканер</Link>
           <Link to="/export">Экспорт</Link>
           <Link to="/repairs">Ремонты</Link>
           <Link to="/catalogs">Справочники</Link>
@@ -91,6 +93,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={authed(<MainPage />)} />
         <Route path="/equipment-units/:id" element={authed(<EquipmentUnitDetailPage />)} />
+        <Route path="/scan" element={authed(<ScanPage />)} />
         <Route path="/export" element={authed(<ExportPage />)} />
         <Route path="/repairs" element={authed(<RepairsPage />)} />
         <Route path="/catalogs" element={authed(<CatalogsPage />)} />

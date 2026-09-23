@@ -1,3 +1,4 @@
 # Скрипты запускаются в Linux-контейнерах — окончания строк только LF, иначе ломается shebang
 *.sh text eol=lf
 backup/Dockerfile text eol=lf
+certbot/Dockerfile text eol=lf

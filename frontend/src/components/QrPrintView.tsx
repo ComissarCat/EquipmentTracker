@@ -5,8 +5,6 @@ import type { EquipmentUnit, LocationItem } from '../types';
 interface QrPrintViewProps {
   units: EquipmentUnit[];
   locationsById: Map<number, LocationItem>;
-  // 'data' — в код зашиты сведения о технике текстом; 'link' — ссылка на карточку единицы техники
-  mode: 'data' | 'link';
   onClose: () => void;
 }
 
@@ -22,7 +20,7 @@ interface QrCell {
 // QR рисуются как SVG (лёгкие векторные строки), а не растровые канвасы — это
 // на порядок экономнее по памяти при генерации тысяч кодов разом.
 export function QrPrintView(props: QrPrintViewProps) {
-  const { units, locationsById, mode, onClose } = props;
+  const { units, locationsById, onClose } = props;
   const [cells, setCells] = React.useState<QrCell[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState(0);
@@ -38,10 +36,13 @@ export function QrPrintView(props: QrPrintViewProps) {
       for (let i = 0; i < units.length; i += BATCH) {
         const batch = units.slice(i, i + BATCH);
         for (const u of batch) {
-          const content =
-            mode === 'link'
-              ? `${window.location.origin}/equipment-units/${u.id}`
-              : [`Тип: ${u.equipmentTypeName}`, `Наименование: ${u.equipmentNameName}`, `S/N: ${u.serialNumber}`, `Инв. №: ${u.inventoryNumber || '—'}`].join('\n');
+          // Сведения о технике текстом; карточку по такому коду находит страница «Сканер» (строка S/N)
+          const content = [
+            `Тип: ${u.equipmentTypeName}`,
+            `Наименование: ${u.equipmentNameName}`,
+            `S/N: ${u.serialNumber}`,
+            `Инв. №: ${u.inventoryNumber || '—'}`
+          ].join('\n');
           const svg = await QRCode.toString(content, { type: 'svg', margin: 1, width: 128 });
           result.push({
             unitId: u.id,
@@ -61,7 +62,7 @@ export function QrPrintView(props: QrPrintViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [units, mode, locationsById]);
+  }, [units, locationsById]);
 
   return (
     <div className="qr-print-root">

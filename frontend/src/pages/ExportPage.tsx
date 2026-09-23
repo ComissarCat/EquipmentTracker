@@ -19,7 +19,7 @@ export function ExportPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [showCardsModal, setShowCardsModal] = useState(false);
-  const [qrView, setQrView] = useState<{ mode: 'data' | 'link' } | null>(null);
+  const [showQr, setShowQr] = useState(false);
 
   const load = async () => {
     const [locRes, unitRes] = await Promise.all([
@@ -37,13 +37,12 @@ export function ExportPage() {
   const locationsById = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
   const selectedUnits = useMemo(() => units.filter((u) => checkedUnitIds.has(u.id)), [units, checkedUnitIds]);
 
-  if (qrView) {
+  if (showQr) {
     return (
       <QrPrintView
         units={selectedUnits}
         locationsById={locationsById}
-        mode={qrView.mode}
-        onClose={() => setQrView(null)}
+        onClose={() => setShowQr(false)}
       />
     );
   }
@@ -111,11 +110,8 @@ export function ExportPage() {
         <button onClick={() => setShowCardsModal(true)} disabled={checkedUnitIds.size === 0 || busy !== null}>
           {busy === 'cards' ? 'Формирование...' : 'Excel: инвентарные карточки'}
         </button>
-        <button onClick={() => setQrView({ mode: 'data' })} disabled={checkedUnitIds.size === 0}>
-          QR-коды (данные)
-        </button>
-        <button onClick={() => setQrView({ mode: 'link' })} disabled={checkedUnitIds.size === 0}>
-          QR-коды (ссылки)
+        <button onClick={() => setShowQr(true)} disabled={checkedUnitIds.size === 0}>
+          QR-коды
         </button>
       </div>
 

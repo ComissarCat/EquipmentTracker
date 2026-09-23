@@ -45,12 +45,45 @@ services:
     build:
       context: ./frontend
     restart: unless-stopped
+    environment:
+      # IP-адрес сервера для HTTPS (сертификат Let's Encrypt). Пусто — сайт работает по HTTP, как раньше.
+      TLS_IP: ${TLS_IP:-}
+      HTTPS_PUBLIC_PORT: ${FRONTEND_HTTPS_PORT:-443}
+    volumes:
+      - certbot-www:/var/www/certbot:ro
+      - letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
     networks:
       - internal
     ports:
       - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_HTTPS_PORT:-443}:443"
+
+  # Выпуск и автоматическое продление сертификата Let's Encrypt на IP-адрес (TLS_IP), см. README.
+  # Если TLS_IP не задан — простаивает.
+  certbot:
+    build:
+      context: ./certbot
+      additional_contexts:
+        backup: ./backup   # общий с резервным копированием notify.sh (письма о сбоях)
+    restart: unless-stopped
+    environment:
+      TLS_IP: ${TLS_IP:-}
+      TLS_EMAIL: ${TLS_EMAIL:-}
+      TLS_STAGING: ${TLS_STAGING:-0}
+      BACKUP_NOTIFY_TO: ${BACKUP_NOTIFY_TO:-}
+      BACKUP_SMTP_HOST: ${BACKUP_SMTP_HOST:-smtp.yandex.ru}
+      BACKUP_SMTP_PORT: ${BACKUP_SMTP_PORT:-465}
+      BACKUP_SMTP_SECURITY: ${BACKUP_SMTP_SECURITY:-ssl}
+      BACKUP_SMTP_USER: ${BACKUP_SMTP_USER:-}
+      BACKUP_SMTP_PASSWORD: ${BACKUP_SMTP_PASSWORD:-}
+      BACKUP_SMTP_FROM: ${BACKUP_SMTP_FROM:-}
+    volumes:
+      - certbot-www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    depends_on:
+      - frontend
 
   # Ежедневные зашифрованные копии БД: локально (том backup-data) + выгрузка на удалённое
   # хранилище (Яндекс Диск по WebDAV). Все настройки — в .env (BACKUP_*), см. README.
@@ -94,3 +127,5 @@ networks:
 volumes:
   db-data:
   backup-data:
+  certbot-www:
+  letsencrypt:

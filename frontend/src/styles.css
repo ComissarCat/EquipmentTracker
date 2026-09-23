@@ -215,3 +215,14 @@ main { flex: 1; padding: 16px 20px; }
 .stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 16px; min-width: 120px; }
 .stat-card .stat-value { font-size: 22px; font-weight: 700; }
 .stat-card .stat-label { color: #6b7280; font-size: 12px; }
+
+/* Сканер QR-кодов */
+.scan-page { max-width: 560px; }
+/* Кнопки одинакового размера: в ряд на широком экране, друг под другом на телефоне */
+.scan-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 14px 0; }
+.page .scan-actions button { width: 100%; font-size: 16px; padding: 12px 16px; }
+.scan-video-wrap { margin-bottom: 14px; }
+.scan-video-wrap video { width: 100%; max-height: 60vh; background: #000; border-radius: 6px; display: block; }
+.scan-input-label { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.scan-input-label textarea { font: inherit; padding: 6px 8px; resize: vertical; }
+.scan-raw { white-space: pre-wrap; word-break: break-all; background: #f3f4f6; padding: 6px 8px; border-radius: 4px; }
