@@ -8,6 +8,8 @@ namespace EquipmentTracker.Api.Services;
 
 public class JwtService
 {
+    public const string SecurityStampClaim = "stamp";
+
     private readonly IConfiguration _config;
 
     public JwtService(IConfiguration config)
@@ -27,7 +29,8 @@ public class JwtService
             new(JwtRegisteredClaimNames.Sub, account.Id.ToString()),
             new(ClaimTypes.NameIdentifier, account.Id.ToString()),
             new(ClaimTypes.Name, account.Login),
-            new("fullName", account.FullName)
+            new("fullName", account.FullName),
+            new(SecurityStampClaim, account.SecurityStamp)
         };
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 

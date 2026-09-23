@@ -94,6 +94,8 @@ public class AccountsController : ControllerBase
         {
             var hasher = new PasswordHasher<Account>();
             account.PasswordHash = hasher.HashPassword(account, request.NewPassword);
+            // Новая метка — все выданные ранее токены (в т.ч. утёкшие) перестают действовать
+            account.SecurityStamp = Guid.NewGuid().ToString("N");
         }
 
         var newRoles = await _db.Roles.Where(r => request.Roles.Contains(r.Name)).ToListAsync();

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using EquipmentTracker.Api.Data;
 using EquipmentTracker.Api.Models;
@@ -46,9 +47,46 @@ builder.Services.AddAuthentication(options =>
             ValidateLifetime = true,
             ClockSkew = TimeSpan.FromMinutes(1)
         };
+
+        // Роли в токене — лишь снимок на момент входа. При каждом запросе сверяем токен с БД:
+        // удалённая учётная запись или сменённый пароль (другая SecurityStamp) — токен недействителен;
+        // роли берутся актуальные, так что снятие/выдача ролей действует сразу, без повторного входа.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var principal = context.Principal!;
+                if (!int.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+                {
+                    context.Fail("Некорректный токен");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+                var account = await db.Accounts
+                    .AsNoTracking()
+                    .Where(a => a.Id == accountId)
+                    .Select(a => new { a.SecurityStamp, Roles = a.AccountRoles.Select(ar => ar.Role.Name).ToList() })
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+
+                // Токены, выданные до появления метки, её не содержат — у таких учётных записей
+                // метка после миграции пустая, они совпадут до первой смены пароля.
+                var tokenStamp = principal.FindFirstValue(JwtService.SecurityStampClaim) ?? string.Empty;
+                if (account is null || account.SecurityStamp != tokenStamp)
+                {
+                    context.Fail("Токен отозван");
+                    return;
+                }
+
+                var identity = (ClaimsIdentity)principal.Identity!;
+                foreach (var claim in identity.FindAll(identity.RoleClaimType).ToList())
+                    identity.RemoveClaim(claim);
+                identity.AddClaims(account.Roles.Select(r => new Claim(identity.RoleClaimType, r)));
+            }
+        };
     });
 
-// Politики авторизации: Operator доступен также Administrator-ам (роль включает оператора)
+// Политики авторизации: Operator доступен также Administrator-ам (роль включает оператора)
 builder.Services.AddAuthorization(options =>
 {
     // Любая из известных ролей: «Только чтение», Оператор или Администратор.
@@ -61,6 +99,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Viewer", viewerPolicy);
     options.DefaultPolicy = viewerPolicy;
     options.FallbackPolicy = viewerPolicy;
+
+    // Только факт входа, без требования роли — для /api/auth/me, чтобы учётная запись, у которой
+    // сняли все роли, могла узнать об этом (а не получать 403).
+    options.AddPolicy("Authenticated", policy => policy.RequireAuthenticatedUser());
 
     options.AddPolicy("Operator", policy =>
         policy.RequireRole(RoleNames.Operator, RoleNames.Administrator));

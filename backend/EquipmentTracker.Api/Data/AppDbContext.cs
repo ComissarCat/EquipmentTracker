@@ -182,20 +182,41 @@ public class AppDbContext : DbContext
             .HasForeignKey(u => u.InventoryId).OnDelete(DeleteBehavior.Cascade);
     }
 
+    // Изменение и его запись в истории сохраняются двумя вызовами SaveChanges (Id новых сущностей
+    // известен только после первого), поэтому оба идут в одной транзакции: либо сохраняется всё,
+    // либо ничего. Если вызывающий уже открыл транзакцию — работаем в ней, коммит за ним.
     public override int SaveChanges()
     {
         var pending = BuildHistoryEntries();
-        var result = base.SaveChanges();
+        if (pending.Count == 0 || Database.CurrentTransaction is not null)
+        {
+            var result = base.SaveChanges();
+            FinalizeAndPersistHistory(pending);
+            return result;
+        }
+
+        using var tx = Database.BeginTransaction();
+        var saved = base.SaveChanges();
         FinalizeAndPersistHistory(pending);
-        return result;
+        tx.Commit();
+        return saved;
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var pending = BuildHistoryEntries();
-        var result = await base.SaveChangesAsync(cancellationToken);
+        if (pending.Count == 0 || Database.CurrentTransaction is not null)
+        {
+            var result = await base.SaveChangesAsync(cancellationToken);
+            await FinalizeAndPersistHistoryAsync(pending, cancellationToken);
+            return result;
+        }
+
+        await using var tx = await Database.BeginTransactionAsync(cancellationToken);
+        var saved = await base.SaveChangesAsync(cancellationToken);
         await FinalizeAndPersistHistoryAsync(pending, cancellationToken);
-        return result;
+        await tx.CommitAsync(cancellationToken);
+        return saved;
     }
 
     private void FinalizeAndPersistHistory(List<(EditHistoryEntry Entry, Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Tracked)> pending)

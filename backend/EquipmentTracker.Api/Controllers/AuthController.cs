@@ -14,11 +14,13 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly JwtService _jwt;
+    private readonly CurrentUserService _currentUser;
 
-    public AuthController(AppDbContext db, JwtService jwt)
+    public AuthController(AppDbContext db, JwtService jwt, CurrentUserService currentUser)
     {
         _db = db;
         _jwt = jwt;
+        _currentUser = currentUser;
     }
 
     [AllowAnonymous]
@@ -41,5 +43,22 @@ public class AuthController : ControllerBase
         var token = _jwt.GenerateToken(account, roles);
 
         return Ok(new LoginResponse(token, account.Login, account.FullName, roles));
+    }
+
+    // Актуальные данные текущего пользователя: фронтенд обновляет по ним роли, сохранённые при входе
+    // (роли могли поменять, пока пользователь был в системе). Доступно и учётной записи без ролей.
+    [Authorize(Policy = "Authenticated")]
+    [HttpGet("me")]
+    public async Task<ActionResult<CurrentUserResponse>> Me()
+    {
+        var accountId = _currentUser.AccountId;
+        var account = await _db.Accounts
+            .AsNoTracking()
+            .Include(a => a.AccountRoles).ThenInclude(ar => ar.Role)
+            .FirstOrDefaultAsync(a => a.Id == accountId);
+        if (account is null) return Unauthorized();
+
+        return new CurrentUserResponse(account.Login, account.FullName,
+            account.AccountRoles.Select(ar => ar.Role.Name).ToList());
     }
 }

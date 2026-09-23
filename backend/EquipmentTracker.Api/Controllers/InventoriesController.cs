@@ -102,14 +102,22 @@ public class InventoriesController : ControllerBase
     [HttpPost("{id:int}/stop")]
     public async Task<ActionResult<InventorySummaryDto>> Stop(int id)
     {
-        var inv = await _db.Inventories.FirstOrDefaultAsync(i => i.Id == id);
+        // Блокировка строки инвентаризации (FOR UPDATE) дожидается идущих подтверждений (они держат
+        // FOR SHARE) и не пускает новые, пока итоги не заморожены — иначе подтверждение, попавшее между
+        // подсчётом и сохранением, исказило бы итоги.
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var inv = (await _db.Inventories
+            .FromSqlInterpolated($"SELECT * FROM \"Inventories\" WHERE \"Id\" = {id} FOR UPDATE")
+            .ToListAsync()).FirstOrDefault();
         if (inv is null) return NotFound();
         if (!inv.IsActive)
             return Conflict(new { message = "Эта инвентаризация уже остановлена" });
 
-        var unresolved = await InventoryQueries.UnresolvedAsync(_db, inv);
-        var total = await _db.EquipmentUnits.CountAsync();
         var confirmed = await _db.InventoryConfirmations.CountAsync(c => c.InventoryId == inv.Id);
+        var unresolved = await InventoryQueries.UnresolvedAsync(_db, inv);
+        // «Всего» — из тех же данных, что и список, чтобы итоги сходились со списком неподтверждённой
+        // техники, даже если между запросами кто-то добавил единицу техники
+        var total = confirmed + unresolved.Count;
 
         foreach (var u in unresolved)
         {
@@ -132,6 +140,7 @@ public class InventoriesController : ControllerBase
         inv.EndedByLogin = _currentUser.Login;
 
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return Ok(InventoryQueries.ToSummary(inv, total, confirmed));
     }
 
@@ -141,7 +150,8 @@ public class InventoriesController : ControllerBase
     [HttpPost("active/confirm")]
     public async Task<ActionResult<ConfirmInventoryResultDto>> Confirm(ConfirmInventoryRequest request)
     {
-        var inv = await _db.Inventories.FirstOrDefaultAsync(i => i.IsActive);
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var inv = await LockActiveForShareAsync();
         if (inv is null)
             return Conflict(new { message = "Инвентаризация не запущена" });
 
@@ -169,6 +179,7 @@ public class InventoriesController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return Ok(new ConfirmInventoryResultDto(toAdd.Count));
     }
 
@@ -179,7 +190,8 @@ public class InventoriesController : ControllerBase
     [HttpPost("active/unconfirm")]
     public async Task<ActionResult<ConfirmInventoryResultDto>> Unconfirm(ConfirmInventoryRequest request)
     {
-        var inv = await _db.Inventories.FirstOrDefaultAsync(i => i.IsActive);
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        var inv = await LockActiveForShareAsync();
         if (inv is null)
             return Conflict(new { message = "Инвентаризация не запущена" });
 
@@ -193,8 +205,17 @@ public class InventoriesController : ControllerBase
         _db.InventoryConfirmations.RemoveRange(toRemove);
 
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         return Ok(new ConfirmInventoryResultDto(toRemove.Count));
     }
+
+    // Идущая инвентаризация с разделяемой блокировкой строки (до конца транзакции): параллельные
+    // подтверждения друг другу не мешают, но остановка (FOR UPDATE) ждёт их завершения. Если остановка
+    // успела раньше — строка уже не проходит условие IsActive и вернётся null.
+    private async Task<Inventory?> LockActiveForShareAsync() =>
+        (await _db.Inventories
+            .FromSqlRaw("SELECT * FROM \"Inventories\" WHERE \"IsActive\" FOR SHARE")
+            .ToListAsync()).FirstOrDefault();
 
     // Единицы из запроса + вся техника в указанных локациях (включая вложенные)
     private async Task<HashSet<int>> ResolveUnitIdsAsync(ConfirmInventoryRequest request)

@@ -23,6 +23,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else localStorage.removeItem('auth');
   }, [user]);
 
+  // Роли, сохранённые при входе, могли измениться (администратор выдал/снял роль) — при открытии
+  // приложения берём актуальные с сервера, чтобы интерфейс показывал верный набор кнопок.
+  // Отозванный токен (сменён пароль, удалена учётная запись) даст 401 — клиент сам отправит на вход.
+  const token = user?.token;
+  useEffect(() => {
+    if (!token) return;
+    apiClient
+      .get<{ login: string; fullName: string; roles: string[] }>('/api/auth/me')
+      .then((res) =>
+        setUser((prev) =>
+          prev && prev.token === token
+            ? { ...prev, login: res.data.login, fullName: res.data.fullName, roles: res.data.roles }
+            : prev
+        )
+      )
+      .catch(() => {
+        /* сетевые ошибки не должны мешать работе с уже сохранёнными данными */
+      });
+  }, [token]);
+
   const login = async (loginValue: string, password: string) => {
     const res = await apiClient.post('/api/auth/login', { login: loginValue, password });
     const authUser: AuthUser = {
