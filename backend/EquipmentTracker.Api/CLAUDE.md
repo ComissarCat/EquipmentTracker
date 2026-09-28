@@ -116,8 +116,11 @@ frontend/src/
   Winforms-проекта (github.com/ComissarCat/Hardware, `ExportManager.cs`) под EPPlus, включая
   специфичные для организации константы (ОКУД, ОКПО, название учреждения) — вынесены в
   конфиг `Export:OrganizationName`/`Export:OkpoCode` (appsettings.json / `.env`), не хардкод.
-- Данные текущей БД **мигрированы** из той же старой системы одноразовым SQL-скриптом
-  (buildings/cabinets/complects/devices → единая иерархия Locations + EquipmentUnits).
+- Перенос данных из старой системы — `tools/import-hardware.sh <mysqldump>` (печатает SQL для psql,
+  одна транзакция): devicetypes/devicenames → типы/наименования, buildings/cabinets/complects →
+  вложенные Locations (здание → кабинет → комплект), devices → EquipmentUnits (поставщик не переносится).
+  Сопоставляет по названию/серийному номеру, поэтому дополняет существующие данные и безопасен при
+  повторном запуске; история пишется от имени «импорт из Hardware». Сам дамп в репозиторий не коммитить.
 
 ## Резервное копирование
 
