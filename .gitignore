@@ -1,5 +1,20 @@
 # Настройки развёртывания: пароли и секреты (шаблон — .env.example)
 .env
 
-# Дампы баз данных (в т.ч. старого проекта Hardware для tools/import-hardware.sh) — содержат персональные данные
-dump-*.sql
+# Дампы и резервные копии БД (в т.ч. старого проекта Hardware для tools/import-hardware.sh) — содержат персональные данные
+*.sql
+*.sql.gz
+*.sql.gz.age
+
+# Приватный ключ age для расшифровки резервных копий (см. README) — хранить вне сервера и репозитория
+key.txt
+
+# Фронтенд: зависимости, сборка, кэш TypeScript
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# IDE и ОС
+.vscode/
+Thumbs.db
+.DS_Store
