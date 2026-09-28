@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { TreeExplorer, type NodeKey, type DragPayload, parseKey } from '../components/TreeExplorer';
 import type { EquipmentName, EquipmentUnit, LocationItem } from '../types';
 import { InventoryBanner } from '../components/InventoryBanner';
+import { LocationPicker } from '../components/LocationPicker';
 import { useActiveInventory } from '../hooks/useActiveInventory';
 import { unitIdsInSelection } from '../utils/inventory';
 
@@ -491,17 +492,11 @@ function UnitModal(props: {
           Примечание
           <textarea value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
-        <label>
+        {/* div, а не label: внутри дерева есть своё поле поиска и кликабельные строки */}
+        <div className="form-field">
           Локация
-          <select value={locationId} onChange={(e) => setLocationId(Number(e.target.value))} required>
-            {props.locations.length === 0 && <option value={0}>Сначала создайте локацию</option>}
-            {props.locations.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </label>
+          <LocationPicker locations={props.locations} value={locationId} onChange={setLocationId} />
+        </div>
         {error && <div className="error-text">{error}</div>}
         <div className="modal-actions">
           <button type="button" onClick={props.onCancel}>

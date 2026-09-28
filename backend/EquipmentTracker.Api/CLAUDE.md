@@ -34,7 +34,8 @@ frontend/src/
   pages/           — MainPage (главная, две панели), ExportPage, EquipmentUnitDetailPage,
                       CatalogsPage, AdminAccountsPage, HistoryPage, LoginPage
   components/       — TreeExplorer (дерево с drag-and-drop и мультивыбором Shift/Ctrl),
-                      ExportTree (дерево с чекбоксами), QrPrintView, InventoryCardsModal
+                      ExportTree (дерево с чекбоксами), QrPrintView, InventoryCardsModal,
+                      LocationPicker (выбор локации деревом в формах техники — вместо <select>)
   utils/           — locationTree.ts (обход иерархии локаций), download.ts
   api/client.ts    — axios-инстанс с JWT-интерцептором
 ```

@@ -93,7 +93,7 @@ main { flex: 1; padding: 16px 20px; }
   max-height: 90vh; overflow: auto;
 }
 .modal h2 { margin: 0 0 6px; font-size: 17px; }
-.modal label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151; }
+.modal label, .modal .form-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151; }
 .modal input, .modal select, .modal textarea {
   padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;
 }
@@ -136,7 +136,8 @@ main { flex: 1; padding: 16px 20px; }
 .detail-label { color: #6b7280; min-width: 190px; flex-shrink: 0; }
 .detail-actions { display: flex; gap: 8px; margin-top: 12px; }
 .detail-blocks { margin-top: 20px; }
-.detail-form label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151; }
+.detail-form label, .detail-form .form-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #374151; }
+.location-picker { flex: none; height: 300px; color: #111827; }
 .detail-form input, .detail-form select, .detail-form textarea {
   padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-family: inherit;
 }

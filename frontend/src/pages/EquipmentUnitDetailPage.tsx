@@ -7,6 +7,7 @@ import { EntityHistory } from '../components/EntityHistory';
 import { RepairHistory } from '../components/RepairHistory';
 import { RepairModal } from '../components/RepairModal';
 import { InventoryBanner } from '../components/InventoryBanner';
+import { LocationPicker } from '../components/LocationPicker';
 import { useActiveInventory } from '../hooks/useActiveInventory';
 
 // Карточка одной единицы техники: полные данные, полный путь локации до корня,
@@ -327,16 +328,11 @@ function EditForm(props: {
         Примечание
         <textarea value={note} onChange={(e) => setNote(e.target.value)} />
       </label>
-      <label>
+      {/* div, а не label: внутри дерева есть своё поле поиска и кликабельные строки */}
+      <div className="form-field">
         Локация
-        <select value={locationId} onChange={(e) => setLocationId(Number(e.target.value))} required>
-          {props.locations.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-      </label>
+        <LocationPicker locations={props.locations} value={locationId} onChange={setLocationId} />
+      </div>
       {error && <div className="error-text">{error}</div>}
       <div className="modal-actions">
         <button type="button" onClick={props.onCancel}>
